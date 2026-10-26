@@ -1,0 +1,21 @@
+.venv/
+__pycache__/
+.pytest_cache/
+.env
+data/
+output/
+node_modules/
+frontend/dist/
+.vscode/
+*.log
+
+# Internal documents, not for a public repo
+Proposal*.docx
+skills/
+
+# Only the files needed to run the website are published
+.claude/
+docs/
+tests/
+scripts/
+requirements-dev.txt

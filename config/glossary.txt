@@ -1,0 +1,5 @@
+# One term per line: TERM = meaning   (lines starting with # are ignored)
+# These are given to the AI so it spells and understands your terms correctly.
+# Examples:
+# PTW = Permit to Work
+# BIM = Building Information Modelling
