@@ -1,5 +1,5 @@
 import type { Register } from '../types';
-import Mermaid from './Mermaid';
+import FlowDiagram from './FlowDiagram';
 import Section from './Section';
 import StringList from './StringList';
 
@@ -34,10 +34,10 @@ export default function ProcessTab({ reg, readOnly, onChange }: Props) {
       </div>
       <Section
         title="Workflow diagram"
-        extra={!readOnly && <span className="text-[12px] text-muted">Drawn from the to-be steps. Save to refresh.</span>}
+        extra={!readOnly && <span className="text-[12px] text-muted">Drawn from the to-be steps, and updates as you edit them.</span>}
       >
-        {reg.diagram_mermaid ? (
-          <Mermaid source={reg.diagram_mermaid} />
+        {reg.tobe_steps.some((s) => s.trim()) ? (
+          <FlowDiagram steps={reg.tobe_steps} />
         ) : (
           <span className="text-muted">No to-be process was described, so there is no diagram.</span>
         )}

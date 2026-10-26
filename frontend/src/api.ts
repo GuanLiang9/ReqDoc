@@ -39,7 +39,15 @@ const json = (method: string, body?: unknown): RequestInit => ({
 
 const enc = encodeURIComponent;
 
+/** The box-to-box workflow picture (SVG text) for the steps currently on screen. */
+async function diagramSvg(steps: string[], cols: number, signal?: AbortSignal): Promise<string> {
+  const res = await fetch('/api/diagram.svg', { ...json('POST', { steps, cols }), signal });
+  if (!res.ok) throw new ApiError(`The diagram could not be drawn (${res.status})`);
+  return res.text();
+}
+
 export const api = {
+  diagramSvg,
   health: () => request<Health>('/health'),
   projects: () => request<ProjectRow[]>('/projects'),
   createProject: (p: { code: string; name: string; owner: string }) =>

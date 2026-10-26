@@ -157,8 +157,10 @@ The requirement document is exported as a **Word file (.docx)**:
 - Click **Export Word** at the top of the project. The button's menu lets you choose the **current draft** or the **latest approved version**.
 - Older versions: **Versions and meetings** tab → **Word** next to the version.
 - File names look like `PRJ-0421_Site-Diary-App_v1.1.docx`. Drafts end with `_DRAFT`.
-- The document has a header with the project, a footer with version, status and page number, and a red **DRAFT — AI-generated** banner until it is approved.
-- The workflow diagram is included as diagram source (Mermaid). Paste it into [mermaid.live](https://mermaid.live) to get a picture. A drawn image inside Word is planned.
+- The document opens with a **cover page** (Woh Hup logo, project, version, status), then a **table of contents**, then the 18 sections and an appendix. Section headings also appear in Word's Navigation Pane (View → Navigation Pane).
+- **Table of contents:** when you open the file Word asks "update the fields?". Click **Yes** and the page numbers are filled in. If you click No, click inside the list and press F9 later.
+- Tables have a dark header row that repeats on every page, light banding, and amber "to confirm" and status colours. The header carries the logo and project name; the footer shows version, status and "Page x of y". Colours come from the logo (gold and grey).
+- The **workflow diagram** is a real picture of boxes and arrows (steps flow across and down, "If ..." steps are marked as decisions). The same picture appears on the website's Process tab and updates as you edit the to-be steps. The logo is `reqdoc/assets/wohhup_logo.png`; replace the file to rebrand.
 - To use a company look, put a Word file called `templates/requirement_template.docx` in the project. Its styles (fonts, headings, table style) are used for the export.
 
 ## 8. The requirement document
@@ -231,7 +233,9 @@ reqdoc/                        # Python backend
   changes.py                   # Follow-up comparison and applying accepted changes
   storage.py                   # Projects, drafts, versions on disk
   render.py                    # register → Markdown and Word (.docx)
-  diagram.py                   # to-be steps → Mermaid flowchart
+  flowchart.py                 # to-be steps → box-to-box diagram (SVG for the website, PNG for Word)
+  diagram.py                   # to-be steps → Mermaid text (stored in the register, Markdown export)
+  assets/wohhup_logo.png       # logo on the Word cover and header
   llm.py                       # LLMClient interface + OllamaClient (Phase 2: BedrockClient)
   models.py, config.py
   prompts/                     # extract_*.md, diff.md, resolve.md, summary.md
@@ -321,7 +325,7 @@ The repo includes [Claude Code](https://docs.claude.com/en/docs/claude-code) ski
 | Phase | Scope |
 |---|---|
 | **1 — Local prototype (this)** | Recording or transcript → document → editable → Word, with reviewed updates. Ollama + Whisper + React. Measure quality on 5+ real meetings |
-| **2 — Company AI and storage** | Swap `OllamaClient` → `BedrockClient` (Claude Sonnet, ap-southeast-1). Save to SharePoint via Microsoft Graph. Speaker labels. Workflow diagram as an image in Word |
+| **2 — Company AI and storage** | Swap `OllamaClient` → `BedrockClient` (Claude Sonnet, ap-southeast-1). Save to SharePoint via Microsoft Graph. Speaker labels |
 | **3 — Hands-free** | Teams transcript auto-pickup via Graph notifications, project code from meeting title, Teams approval cards (Power Automate) |
 
 ## 17. Troubleshooting

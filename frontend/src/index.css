@@ -220,6 +220,14 @@ button.chip:hover {
   outline-offset: 2px;
 }
 
+/* ---------- workflow diagram (SVG from the server) ---------- */
+.flow-diagram svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto;
+}
+
 /* ---------- small screens ---------- */
 @media (max-width: 640px) {
   .ant-modal {

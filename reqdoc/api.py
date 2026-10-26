@@ -7,7 +7,7 @@ from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import config, storage
+from . import config, flowchart, storage
 from .changes import apply_change, item_text, next_id, prefix_for
 from .jobs import runner
 from .models import ITEM_CATEGORIES, LIST_CATEGORIES, Register
@@ -39,6 +39,11 @@ class Approve(BaseModel):
 
 class Decision(BaseModel):
     decision: str
+
+
+class DiagramRequest(BaseModel):
+    steps: list[str]
+    cols: int = 4
 
 
 # --- health --------------------------------------------------------------------
@@ -244,6 +249,14 @@ def get_transcript(code: str, meeting_id: str):
 def export_docx(code: str, version: str = "latest"):
     data, name = storage.export_docx(code, version)
     return Response(data, media_type=DOCX_TYPE, headers={"Content-Disposition": f'attachment; filename="{name}"'})
+
+
+@app.post("/api/diagram.svg")
+def diagram_svg(body: DiagramRequest):
+    """Stateless: the website sends the steps it is showing, so the picture follows unsaved edits."""
+    if len(body.steps) > 200 or any(len(s) > 2000 for s in body.steps):
+        raise HTTPException(422, "Too many or too long steps for a diagram")
+    return Response(flowchart.to_svg(body.steps, max(1, min(body.cols, 6))), media_type="image/svg+xml")
 
 
 # --- the React app -------------------------------------------------------------
