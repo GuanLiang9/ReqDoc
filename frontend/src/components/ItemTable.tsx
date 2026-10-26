@@ -1,6 +1,9 @@
-import { Button, Input, Select, Table, Tooltip } from 'antd';
+import type { ReactNode } from 'react';
+import { Button, DatePicker, Input, Select, Table, Tooltip } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons';
+import dayjs from 'dayjs';
+import { prettyDate } from '../dates';
 import type { Tracked } from '../types';
 import Chip, { statusTone } from './Chip';
 
@@ -12,6 +15,10 @@ export interface Col<T> {
   options?: string[];
   /** a growing multi-line box (use for the main sentence of an item) */
   area?: boolean;
+  /** a calendar date, stored as YYYY-MM-DD */
+  date?: boolean;
+  /** a display computed from the whole row, read-only in every mode */
+  render?: (row: T) => ReactNode;
 }
 
 interface Props<T extends Tracked> {
@@ -23,6 +30,10 @@ interface Props<T extends Tracked> {
   addLabel: string;
   onChange: (rows: T[]) => void;
   onEvidence: (row: T) => void;
+  /** extra note shown under the status of a row (for example "Overdue") */
+  rowFlag?: (row: T) => ReactNode;
+  /** table width below which it scrolls sideways */
+  minWidth?: number;
 }
 
 /** A spreadsheet-like table for one kind of register item. Rows are never deleted once saved: set Status to Withdrawn. */
@@ -35,6 +46,8 @@ export default function ItemTable<T extends Tracked>({
   addLabel,
   onChange,
   onEvidence,
+  rowFlag,
+  minWidth = 900,
 }: Props<T>) {
   const patch = (index: number, change: Partial<T>) =>
     onChange(rows.map((r, i) => (i === index ? { ...r, ...change } : r)));
@@ -49,7 +62,22 @@ export default function ItemTable<T extends Tracked>({
       title: c.title,
       width: c.width,
       render: (_: unknown, r: T, i: number) => {
+        if (c.render) return c.render(r);
         const value = String(r[c.key] ?? '');
+        if (c.date) {
+          if (readOnly) return <span className="whitespace-nowrap">{prettyDate(value) || '—'}</span>;
+          return (
+            <DatePicker
+              size="small"
+              variant="borderless"
+              className="w-full"
+              format="D MMM YYYY"
+              aria-label={`${c.title} ${r.id || 'new row'}`}
+              value={value ? dayjs(value) : null}
+              onChange={(d) => patch(i, { [c.key]: d ? d.format('YYYY-MM-DD') : '' } as Partial<T>)}
+            />
+          );
+        }
         if (readOnly) return <span className="whitespace-pre-wrap">{value || '—'}</span>;
         if (c.options) {
           return (
@@ -79,19 +107,23 @@ export default function ItemTable<T extends Tracked>({
     {
       title: 'Status',
       width: 120,
-      render: (_, r, i) =>
-        readOnly ? (
-          <Chip tone={statusTone(r.status)}>{r.status}</Chip>
-        ) : (
-          <Select
-            size="small"
-            variant="borderless"
-            className="w-full"
-            value={r.status}
-            options={statuses.map((s) => ({ value: s, label: s }))}
-            onChange={(v) => patch(i, { status: v } as Partial<T>)}
-          />
-        ),
+      render: (_, r, i) => (
+        <span className="flex flex-col items-start gap-1">
+          {readOnly ? (
+            <Chip tone={statusTone(r.status)}>{r.status}</Chip>
+          ) : (
+            <Select
+              size="small"
+              variant="borderless"
+              className="w-full"
+              value={r.status}
+              options={statuses.map((s) => ({ value: s, label: s }))}
+              onChange={(v) => patch(i, { status: v } as Partial<T>)}
+            />
+          )}
+          {rowFlag?.(r)}
+        </span>
+      ),
     },
     {
       title: 'Evidence',
@@ -144,7 +176,7 @@ export default function ItemTable<T extends Tracked>({
         columns={columns}
         dataSource={rows}
         pagination={false}
-        scroll={{ x: 900 }}
+        scroll={{ x: minWidth }}
         locale={{ emptyText: <span className="text-muted">Not discussed in this meeting</span> }}
       />
       {!readOnly && (

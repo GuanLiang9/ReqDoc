@@ -144,6 +144,11 @@ class Question(ExtractedQuestion, Tracked):
 
 class Action(ExtractedAction, Tracked):
     status: str = "Open"
+    raised_date: str = ""  # date of the meeting that gave the action (YYYY-MM-DD)
+    due_date: str = ""  # `due` as a real date (YYYY-MM-DD), "" when it could not be worked out
+    closed_meeting: str = ""  # meeting id in which it was marked done or withdrawn
+    closed_date: str = ""
+    updates: list[str] = []  # one line each time a later meeting moved the owner or due date
 
 
 class Risk(Quoted, Tracked):
@@ -163,7 +168,7 @@ class MeetingInfo(BaseModel):
 
 
 class Register(BaseModel):
-    schema_version: int = 1
+    schema_version: int = 2
     project_code: str
     project_name: str = ""
     version: str = "0.1"

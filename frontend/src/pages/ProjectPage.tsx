@@ -10,6 +10,7 @@ import Chip from '../components/Chip';
 import DraftBar from '../components/DraftBar';
 import EvidenceDrawer, { type Evidence } from '../components/EvidenceDrawer';
 import HistoryTab from '../components/HistoryTab';
+import MeetingNotesTab from '../components/MeetingNotesTab';
 import JobBanner from '../components/JobBanner';
 import ProcessTab from '../components/ProcessTab';
 import RequirementsTab from '../components/RequirementsTab';
@@ -168,9 +169,9 @@ export default function ProjectPage() {
       await loadAll(true);
     }, 'Draft discarded');
 
-  const download = async (version: string) => {
+  const download = async (version: string, doc: 'spec' | 'notes' = 'spec') => {
     if (version === 'draft' && dirty && !(await save())) return;
-    window.location.href = api.exportUrl(code, version);
+    window.location.href = api.exportUrl(code, version, doc);
   };
 
   const showEvidence = (meetingId: string, timestamp: string, quote: string, label: string) =>
@@ -196,10 +197,17 @@ export default function ProjectPage() {
   const pending = detail.pending_changes;
   const latestMeeting = draft?.meetings[draft.meetings.length - 1]?.id ?? '';
 
-  const exportItems = [
-    ...(detail.has_draft ? [{ key: 'draft', label: 'Current draft (not approved yet)' }] : []),
-    ...(hasMaster ? [{ key: 'latest', label: `Approved version v${detail.master_version}` }] : []),
+  const versionItems = (doc: 'spec' | 'notes') => [
+    ...(detail.has_draft ? [{ key: `${doc}:draft`, label: 'Current draft (not approved yet)' }] : []),
+    ...(hasMaster ? [{ key: `${doc}:latest`, label: `Approved version v${detail.master_version}` }] : []),
   ];
+  const exportItems =
+    detail.has_draft || hasMaster
+      ? [
+          { type: 'group' as const, label: 'Requirement specification', children: versionItems('spec') },
+          { type: 'group' as const, label: 'Meeting notes & action tracker', children: versionItems('notes') },
+        ]
+      : [];
 
   const uploadBlockedReason = detail.has_draft
     ? 'Approve or discard the open draft before adding another meeting'
@@ -246,6 +254,18 @@ export default function ProjectPage() {
       label: 'Process and diagram',
       children: reg && <ProcessTab reg={reg} readOnly={!draft} onChange={setDraft} />,
     },
+    {
+      key: 'notes',
+      label: 'Meeting notes and actions',
+      children: reg && (
+        <MeetingNotesTab
+          reg={reg}
+          readOnly={!draft}
+          onChange={setDraft}
+          onEvidence={(item, label) => showEvidence(item.source_meeting, item.timestamp, item.quote, label)}
+        />
+      ),
+    },
     { key: 'history', label: 'Versions and meetings', children: <HistoryTab detail={detail} changeLog={draft?.change_log ?? []} /> },
   ];
 
@@ -275,7 +295,16 @@ export default function ProjectPage() {
               <Button icon={<DownloadOutlined />} onClick={() => download(detail.has_draft ? 'draft' : 'latest')}>
                 Export Word
               </Button>
-              <Dropdown menu={{ items: exportItems, onClick: ({ key }) => download(key) }} trigger={['click']}>
+              <Dropdown
+                menu={{
+                  items: exportItems,
+                  onClick: ({ key }) => {
+                    const [doc, version] = key.split(':');
+                    download(version, doc as 'spec' | 'notes');
+                  },
+                }}
+                trigger={['click']}
+              >
                 <Button icon={<DownOutlined />} aria-label="Choose what to export" />
               </Dropdown>
             </Space.Compact>

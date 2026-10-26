@@ -20,6 +20,8 @@ OLLAMA_NUM_GPU = int(os.getenv("OLLAMA_NUM_GPU")) if os.getenv("OLLAMA_NUM_GPU")
 OLLAMA_MAX_TOKENS = int(os.getenv("OLLAMA_MAX_TOKENS", "4096"))  # cap per call
 WHISPER_MODEL = os.getenv("WHISPER_MODEL", "small")  # tiny / base / small / medium
 WHISPER_LANGUAGE = os.getenv("WHISPER_LANGUAGE", "en")  # "" = auto-detect
+# Let Microsoft Word fill in each document's table of contents (needs Word on this computer; adds a few seconds)
+WORD_TOC = os.getenv("REQDOC_WORD_TOC", "1").strip().lower() not in ("0", "false", "no", "")
 FRONTEND_DIST = ROOT / "frontend" / "dist"
 CHUNK_TOKENS = int(os.getenv("CHUNK_TOKENS", "6000"))
 DATA_DIR = _path(os.getenv("REQDOC_DATA_DIR", "./data"))

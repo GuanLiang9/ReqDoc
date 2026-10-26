@@ -40,7 +40,7 @@ The full vision (Teams auto-pickup, SharePoint filing, AWS Bedrock) is in `Propo
 |---|---|
 | Upload a **recording** (MP3, M4A, WAV, MP4, WEBM…) and transcribe it locally | Pick up Teams recordings automatically |
 | Upload a Teams transcript (`.vtt`, `.docx`) or plain text (`.txt`) | Tell speakers apart in a recording (see [limitations](#15-safeguards-and-limitations)) |
-| Write an 18-section requirement document | Save to SharePoint or send Teams approval cards |
+| Write a lean requirement specification, plus a separate meeting notes and action tracker | Save to SharePoint or send Teams approval cards |
 | **Edit everything in the browser**: text, owner, priority, status | Use cloud AI (Bedrock / Claude). That's Phase 2 |
 | **Export to Word (.docx)** for any approved version or the current draft | Handle several people editing one project at the same time |
 | On follow-up meetings: show New / Changed / Conflict … for you to accept or reject | |
@@ -152,42 +152,46 @@ By default under `data/projects/<code> <name>/`. To share with the team, point `
 
 ## 7. Exporting to Word
 
-The requirement document is exported as a **Word file (.docx)**:
+Two **Word files (.docx)** are exported for every project, because they are for different readers:
 
-- Click **Export Word** at the top of the project. The button's menu lets you choose the **current draft** or the **latest approved version**.
-- Older versions: **Versions and meetings** tab → **Word** next to the version.
-- File names look like `PRJ-0421_Site-Diary-App_v1.1.docx`. Drafts end with `_DRAFT`.
-- The document opens with a **cover page** (Woh Hup logo, project, version, status), then a **table of contents**, then the 18 sections and an appendix. Section headings also appear in Word's Navigation Pane (View → Navigation Pane).
-- **Table of contents:** when you open the file Word asks "update the fields?". Click **Yes** and the page numbers are filled in. If you click No, click inside the list and press F9 later.
+| File | For | Contains |
+|---|---|---|
+| **Requirement specification** `PRJ-0421_Site-Diary-App_v1.1.docx` | Engineers, users, managers, anyone taking over (KT and handover) | Only what was agreed to be built and how (13 sections, see [section 8](#8-the-requirement-document)). About 5 pages |
+| **Meeting notes & action tracker** `PRJ-0421_Site-Diary-App_v1.1_Meeting-Notes.docx` | The project team | Action tracker (which meeting gave each action, the date, owner, due date, status, and which meeting closed it), open questions, a summary of every meeting, and the as-is process |
+
+- Click **Export Word** at the top of the project for the specification. The arrow next to it lets you pick the notes file, and the **current draft** or the **latest approved version** of either.
+- Older versions: **Versions and meetings** tab → **Spec** or **Notes** next to the version.
+- Drafts end with `_DRAFT`.
+- Each document opens with a **cover page** (Woh Hup logo, project, version, status), then a **table of contents**, then the sections. Section headings also appear in Word's Navigation Pane (View → Navigation Pane).
+- **Table of contents:** the app fills it in for you, with page numbers, by opening the finished file in Microsoft Word in the background (a few seconds per export; Word windows you already have open are left alone). If Word is not installed, or you set `REQDOC_WORD_TOC=0`, the file asks "update the fields?" when you open it: click **Yes**.
 - Tables have a dark header row that repeats on every page, light banding, and amber "to confirm" and status colours. The header carries the logo and project name; the footer shows version, status and "Page x of y". Colours come from the logo (gold and grey).
 - The **workflow diagram** is a real picture of boxes and arrows (steps flow across and down, "If ..." steps are marked as decisions). The same picture appears on the website's Process tab and updates as you edit the to-be steps. The logo is `reqdoc/assets/wohhup_logo.png`; replace the file to rebrand.
 - To use a company look, put a Word file called `templates/requirement_template.docx` in the project. Its styles (fonts, headings, table style) are used for the export.
 
 ## 8. The requirement document
 
-Every document follows one fixed template. Sections with nothing discussed say **"Not discussed in this meeting"**. They are never filled with invented content.
+The **requirement specification** is kept short on purpose: it says what was agreed to be built and how, and nothing else. Who asked, what was discussed and who is doing what belongs in the meeting notes. Withdrawn items are left out (they stay in the change log). Empty sections say **"None recorded yet"** and are never filled with invented content.
 
 | # | Section | What goes in it |
 |---|---|---|
-| 1 | Document control | Project code, meeting title, date, attendees, version, status, reviewer |
-| 2 | Meeting summary | 5 to 8 lines: purpose, outcome, key points |
-| 3 | Business objectives | Why this is needed, problem being solved |
-| 4 | Scope | In scope, out of scope, deferred |
-| 5 | Stakeholders and users | Roles, users, approvers |
-| 6 | Functional requirements | `FR-001`… with priority (Must/Should/Could), requested by, transcript time |
-| 7 | Non-functional requirements | `NFR-001`… performance, security, access, offline, integration |
-| 8 | Current process (as-is) | Steps and pain points |
-| 9 | Proposed process (to-be) | Steps for the new way of working |
-| 10 | Workflow diagram | Flowchart of the to-be process |
-| 11 | Business rules | e.g. "Hot work permits cannot be longer than 8 hours" (`BR-001`…) |
-| 12 | Data and fields | Forms, fields, reports mentioned |
-| 13 | Assumptions and constraints | Budget, timeline, technical limits |
-| 14 | Decisions made | What was agreed, by whom (`DEC-001`…) |
-| 15 | Open questions | Unresolved points with owner (`Q-001`…) |
-| 16 | Action items | Task, owner, due date (`ACT-001`…) |
-| 17 | Risks | Risks raised (`RSK-001`…) |
-| 18 | Glossary | Project and company terms |
+| 1 | Document control | Project, version, status, reviewer, last updated |
+| 2 | Overview and objectives | One line on what the document covers and how many meetings it reflects, then why this is needed |
+| 3 | Scope | In scope, out of scope, deferred to a later phase |
+| 4 | Users and stakeholders | Roles, users, approvers |
+| 5 | Functional requirements | `FR-001`… with priority (Must/Should/Could) and status |
+| 6 | Non-functional requirements | `NFR-001`… performance, security, access, offline, integration |
+| 7 | Business rules | e.g. "Hot work permits cannot be longer than 8 hours" (`BR-001`…) |
+| 8 | Process and workflow | The to-be steps and the box-to-box diagram |
+| 9 | Data and fields | Forms, fields, reports mentioned |
+| 10 | Assumptions and constraints | Budget, timeline, technical limits |
+| 11 | Agreed decisions | What was agreed and the date (`DEC-001`…) |
+| 12 | Risks | Risks raised (`RSK-001`…) |
+| 13 | Glossary | Project and company terms |
 | — | Appendix | Source meetings and the change log |
+
+The **meeting notes & action tracker** has: the **action tracker** (`ACT-001`…: task, owner, the meeting and date it was raised, due date, status, and the meeting and date it was closed; open items first, overdue ones in red), **open questions** with their answers, a **summary of each meeting**, and the **current (as-is) process**.
+
+**Action dates.** The AI writes the due date as people say it ("Friday", "5 November", "end of the week"). The app turns it into a real date counted from the meeting date (deterministic code, not the AI); "next meeting" has no date, so the words are kept. You can change the date with the date picker on the **Meeting notes and actions** tab. When a later meeting moves an action's owner or due date it shows up as a **Changed** item to review, and the old and new values are kept in the action's history.
 
 ## 9. Follow-up meetings and change types
 
@@ -210,6 +214,7 @@ Plain lists (objectives, scope, process steps, data fields, assumptions, glossar
 | Key | Default | Purpose |
 |---|---|---|
 | `REQDOC_PORT` | `8000` | Port of the website. Change it if another program uses 8000 |
+| `REQDOC_WORD_TOC` | `1` | `1` = Microsoft Word fills in each document's table of contents (needs Word, adds a few seconds per export). `0` = Word asks to update it when the file is opened |
 | `OLLAMA_HOST` | `http://localhost:11434` | Where Ollama runs. Point at a teammate's GPU PC to share one model |
 | `OLLAMA_MODEL` | `qwen2.5:7b` | AI model (see [model table](#which-ai-model-for-your-laptop)) |
 | `OLLAMA_NUM_CTX` | `16384` | Context window in tokens. Lower it if you run out of memory |

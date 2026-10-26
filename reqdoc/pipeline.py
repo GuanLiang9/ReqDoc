@@ -5,6 +5,7 @@ from collections.abc import Callable
 from difflib import SequenceMatcher
 
 from . import config
+from .dates import resolve_due
 from .diagram import mermaid_from_steps
 from .llm import LLMClient
 from .models import (
@@ -178,6 +179,11 @@ def build_register(ext: Extraction, segments: list[Segment], project_code: str, 
             _verify(rec, index)
         return records
 
+    actions = track([Action(**a.model_dump()) for a in ext.actions], "ACT")
+    for a in actions:  # when it was given, and the due date as a real date
+        a.raised_date = meeting_date
+        a.due_date = resolve_due(a.due, meeting_date)
+
     reqs = [Requirement(**r.model_dump()) for r in ext.requirements]
     fr = track([r for r in reqs if r.kind == "FR"], "FR")
     nfr = track([r for r in reqs if r.kind == "NFR"], "NFR")
@@ -201,7 +207,7 @@ def build_register(ext: Extraction, segments: list[Segment], project_code: str, 
         assumptions=ext.assumptions,
         decisions=track([Decision(**d.model_dump()) for d in ext.decisions], "DEC"),
         questions=track([Question(**q.model_dump()) for q in ext.questions], "Q"),
-        actions=track([Action(**a.model_dump()) for a in ext.actions], "ACT"),
+        actions=actions,
         risks=track([Risk(**r.model_dump()) for r in ext.risks], "RSK"),
         glossary=ext.glossary,
     )

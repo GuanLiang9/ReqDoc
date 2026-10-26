@@ -15,6 +15,7 @@ from datetime import date
 from pathlib import Path
 
 from . import config
+from .dates import resolve_due
 from .diagram import mermaid_from_steps
 from .models import Change, Project, Register
 from .render import render_docx
@@ -106,8 +107,20 @@ def list_projects() -> list[dict]:
 
 # --- registers -----------------------------------------------------------------
 
+def _migrate(reg: Register) -> Register:
+    """Bring a register saved by an older version up to the current schema (in memory; saved on the next write)."""
+    if reg.schema_version < 2:  # v2: actions know when they were raised and their due date as a date
+        dates = {m.id: m.date for m in reg.meetings}
+        fallback = reg.meetings[0].date if reg.meetings else ""
+        for a in reg.actions:
+            a.raised_date = a.raised_date or dates.get(a.source_meeting, fallback)
+            a.due_date = a.due_date or resolve_due(a.due, a.raised_date)
+        reg.schema_version = 2
+    return reg
+
+
 def _load_register(path: Path) -> Register | None:
-    return Register.model_validate_json(path.read_text(encoding="utf-8")) if path.exists() else None
+    return _migrate(Register.model_validate_json(path.read_text(encoding="utf-8"))) if path.exists() else None
 
 
 def load_master(code: str) -> Register | None:
@@ -188,6 +201,16 @@ def new_meeting_id(code: str, meeting_date: str, title: str) -> str:
     return mid
 
 
+def meeting_summaries(code: str) -> dict[str, str]:
+    """meeting id -> the summary written for that meeting (the master only keeps the latest one)."""
+    out = {}
+    for p in sorted((project_dir(code) / "01_meeting_docs").glob("*.register.json")):
+        reg = Register.model_validate_json(p.read_text(encoding="utf-8"))
+        if reg.meetings and reg.summary:
+            out[reg.meetings[-1].id] = reg.summary
+    return out
+
+
 def list_meetings(code: str) -> list[dict]:
     out = []
     for p in sorted((project_dir(code) / "01_meeting_docs").glob("*.register.json")):
@@ -235,6 +258,7 @@ def approve(code: str, reviewer: str, major: bool = False) -> Register:
         payload = draft.model_dump_json(indent=2)
         _write(vdir / "register.json", payload)
         _write(vdir / "master.docx", render_docx(draft))
+        _write(vdir / "meeting_notes.docx", render_docx(draft, "notes", meeting_summaries(code)))
         _write(folder / "register.json", payload)
         discard_draft(code)
         return draft
@@ -259,10 +283,13 @@ def get_register(code: str, version: str = "latest") -> Register:
     return reg
 
 
-def export_docx(code: str, version: str = "latest") -> tuple[bytes, str]:
-    """(docx bytes, filename)."""
+def export_docx(code: str, version: str = "latest", doc: str = "spec") -> tuple[bytes, str]:
+    """(docx bytes, filename). doc: 'spec' (requirement specification) or 'notes' (meeting notes and action tracker)."""
+    if doc not in ("spec", "notes"):
+        raise StorageError("Unknown document type")
     proj = get_project(code)
     reg = get_register(code, version)
     suffix = "_DRAFT" if reg.doc_status == "DRAFT" else ""
-    name = f"{proj.code}_{_safe_name(proj.name).replace(' ', '-')}_v{reg.version}{suffix}.docx"
-    return render_docx(reg), name
+    kind = "_Meeting-Notes" if doc == "notes" else ""
+    name = f"{proj.code}_{_safe_name(proj.name).replace(' ', '-')}_v{reg.version}{kind}{suffix}.docx"
+    return render_docx(reg, doc, meeting_summaries(code) if doc == "notes" else None), name

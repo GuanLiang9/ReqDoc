@@ -68,8 +68,9 @@ export const api = {
     request<Change[]>(`/projects/${enc(code)}/changes-accept-safe`, { method: 'POST' }),
   transcript: (code: string, meetingId: string) =>
     request<TranscriptLine[]>(`/projects/${enc(code)}/transcripts/${enc(meetingId)}`),
-  exportUrl: (code: string, version: string) =>
-    `/api/projects/${enc(code)}/export.docx?version=${enc(version)}`,
+  /** doc: 'spec' = requirement specification, 'notes' = meeting notes and action tracker */
+  exportUrl: (code: string, version: string, doc: 'spec' | 'notes' = 'spec') =>
+    `/api/projects/${enc(code)}/export.docx?version=${enc(version)}&doc=${doc}`,
 };
 
 /** Upload a recording or transcript. XMLHttpRequest (not fetch) so large files show progress. */

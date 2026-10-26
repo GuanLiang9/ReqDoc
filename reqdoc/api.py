@@ -9,6 +9,7 @@ from pydantic import BaseModel
 
 from . import config, flowchart, storage
 from .changes import apply_change, item_text, next_id, prefix_for
+from .dates import resolve_due, today_sgt
 from .jobs import runner
 from .models import ITEM_CATEGORIES, LIST_CATEGORIES, Register
 from .parsers import parse_lines
@@ -143,6 +144,26 @@ def get_draft(code: str):
     return draft
 
 
+def _stamp_actions(body: Register, current: Register) -> None:
+    """Keep the action dates honest when people edit them in the browser."""
+    meeting_dates = {m.id: m.date for m in current.meetings}
+    old = {a.id: a for a in current.actions}
+    for a in body.actions:
+        prev = old.get(a.id)
+        if prev:  # history is written by the server, not the browser
+            a.raised_date, a.updates = prev.raised_date, prev.updates
+            a.closed_meeting, a.closed_date = prev.closed_meeting, prev.closed_date
+        a.raised_date = a.raised_date or meeting_dates.get(a.source_meeting, "")
+        # the spoken due text changed and nobody picked a date by hand: work the date out again
+        typed_new_text = a.due.strip() and (prev is None or prev.due != a.due)
+        if typed_new_text and (prev is None or a.due_date == prev.due_date):
+            a.due_date = resolve_due(a.due, a.raised_date) or a.due_date
+        if a.status in ("Done", "Withdrawn") and not a.closed_date:
+            a.closed_date = today_sgt()
+        elif a.status == "Open":
+            a.closed_meeting = a.closed_date = ""
+
+
 @app.put("/api/projects/{code}/draft")
 def put_draft(code: str, body: Register):
     with storage.draft_lock():
@@ -162,6 +183,7 @@ def put_draft(code: str, body: Register):
                     item.id = next_id(body, prefix_for(cat, item.model_dump()))
                 if not item.source_meeting:
                     item.source_meeting = meeting
+        _stamp_actions(body, current)
         for cat in LIST_CATEGORIES:
             if cat == "glossary":
                 body.glossary = [g for g in body.glossary if g.term.strip()]
@@ -246,8 +268,8 @@ def get_transcript(code: str, meeting_id: str):
 
 
 @app.get("/api/projects/{code}/export.docx")
-def export_docx(code: str, version: str = "latest"):
-    data, name = storage.export_docx(code, version)
+def export_docx(code: str, version: str = "latest", doc: str = "spec"):
+    data, name = storage.export_docx(code, version, doc)
     return Response(data, media_type=DOCX_TYPE, headers={"Content-Disposition": f'attachment; filename="{name}"'})
 
 

@@ -1,6 +1,6 @@
 import { Button, Input, Table } from 'antd';
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons';
-import type { Action, Decision, Question, Register, Requirement, Risk, Rule, StringListKey, Tracked } from '../types';
+import type { Decision, Register, Requirement, Risk, Rule, StringListKey, Tracked } from '../types';
 import ItemTable from './ItemTable';
 import Section from './Section';
 import StringList from './StringList';
@@ -29,21 +29,9 @@ export default function RequirementsTab({ reg, readOnly, onChange, onEvidence }:
 
   return (
     <div>
-      <Section title="Meeting summary">
-        {readOnly ? (
-          <p className="serif m-0 whitespace-pre-wrap text-[22px] leading-snug">
-            {reg.summary || <span className="text-muted">Not discussed in this meeting</span>}
-          </p>
-        ) : (
-          <Input.TextArea
-            aria-label="Meeting summary"
-            autoSize={{ minRows: 2, maxRows: 8 }}
-            value={reg.summary}
-            style={{ fontFamily: 'var(--serif)', fontStyle: 'italic', fontSize: 20, lineHeight: 1.35 }}
-            onChange={(e) => set('summary', e.target.value)}
-          />
-        )}
-      </Section>
+      <p className="serif m-0 mb-5 text-[20px] leading-snug text-muted">
+        What is to be built and how. Meeting summaries, action items and open questions are on the “Meeting notes and actions” tab.
+      </p>
 
       <div className="grid gap-4 md:grid-cols-2">
         <Section title="Business objectives" count={reg.objectives.length}>
@@ -116,40 +104,6 @@ export default function RequirementsTab({ reg, readOnly, onChange, onEvidence }:
           ]}
           onChange={(v) => set('decisions', v)}
           onEvidence={(r) => onEvidence(r, `${r.id}: ${r.text}`)}
-        />
-      </Section>
-
-      <Section title="Open questions" count={reg.questions.length}>
-        <ItemTable<Question>
-          rows={reg.questions}
-          readOnly={readOnly}
-          addLabel="Add question"
-          statuses={['Open', 'Answered', 'Withdrawn']}
-          blank={() => ({ ...base('Open'), text: '', owner: '', answer: '' })}
-          cols={[
-            { key: 'text', title: 'Question', area: true },
-            { key: 'owner', title: 'Owner', width: 140 },
-            { key: 'answer', title: 'Answer', area: true, width: 200 },
-          ]}
-          onChange={(v) => set('questions', v)}
-          onEvidence={(r) => onEvidence(r, `${r.id}: ${r.text}`)}
-        />
-      </Section>
-
-      <Section title="Action items" count={reg.actions.length}>
-        <ItemTable<Action>
-          rows={reg.actions}
-          readOnly={readOnly}
-          addLabel="Add action"
-          statuses={['Open', 'Done', 'Withdrawn']}
-          blank={() => ({ ...base('Open'), task: '', owner: '', due: '' })}
-          cols={[
-            { key: 'task', title: 'Task', area: true },
-            { key: 'owner', title: 'Owner', width: 140 },
-            { key: 'due', title: 'Due', width: 120 },
-          ]}
-          onChange={(v) => set('actions', v)}
-          onEvidence={(r) => onEvidence(r, `${r.id}: ${r.task}`)}
         />
       </Section>
 

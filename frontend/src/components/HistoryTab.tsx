@@ -23,9 +23,14 @@ export default function HistoryTab({ detail, changeLog }: { detail: ProjectDetai
               title: '',
               align: 'right',
               render: (_, v) => (
-                <Button size="small" icon={<DownloadOutlined />} href={api.exportUrl(code, v)} aria-label={`Download version ${v} as Word`}>
-                  Word
-                </Button>
+                <span className="inline-flex gap-2">
+                  <Button size="small" icon={<DownloadOutlined />} href={api.exportUrl(code, v)} aria-label={`Download version ${v} as Word`}>
+                    Spec
+                  </Button>
+                  <Button size="small" icon={<DownloadOutlined />} href={api.exportUrl(code, v, 'notes')} aria-label={`Download version ${v} meeting notes as Word`}>
+                    Notes
+                  </Button>
+                </span>
               ),
             },
           ]}

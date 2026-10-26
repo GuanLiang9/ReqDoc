@@ -3,10 +3,11 @@ import io
 import re
 from datetime import datetime, timedelta, timezone
 
-from . import config, flowchart
+from . import config, flowchart, word_fields
+from .dates import pretty, today_sgt
 from .models import Register
 
-EMPTY = "Not discussed in this meeting"
+EMPTY = "None recorded yet"
 WARN = "⚠ to confirm"
 TEMPLATE = config.ROOT / "templates" / "requirement_template.docx"
 LOGO = config.ROOT / "reqdoc" / "assets" / "wohhup_logo.png"
@@ -50,52 +51,123 @@ def _table(headers: list[str], rows: list[list[str]]) -> Block:
     return ("table", headers, rows) if rows else ("empty",)
 
 
-def sections(reg: Register) -> list[tuple[str, list[Block]]]:
-    """The 18 fixed sections of the requirement document."""
-    meeting = reg.meetings[-1] if reg.meetings else None
-    fr = [r for r in reg.requirements if r.kind == "FR"]
-    nfr = [r for r in reg.requirements if r.kind == "NFR"]
-    req_headers = ["ID", "Requirement", "Priority", "Requested by", "Time", "Status"]
+def _live(items):
+    """Withdrawn items stay in the change log but are not part of what was agreed."""
+    return [i for i in items if i.status != "Withdrawn"]
+
+
+def _meeting_names(reg: Register) -> dict[str, str]:
+    """meeting id -> '30 Oct 2026 · Kickoff'."""
+    return {m.id: f"{pretty(m.date)} · {m.title}" for m in reg.meetings}
+
+
+def _overview(reg: Register) -> str:
+    dates = sorted(m.date for m in reg.meetings if m.date)
+    if not dates:
+        return f"This document sets out what has been agreed to build for {reg.project_name or reg.project_code}."
+    span = pretty(dates[0]) if dates[0] == dates[-1] else f"{pretty(dates[0])} and {pretty(dates[-1])}"
+    n = len(dates)
+    return (f"This document sets out what has been agreed to build for {reg.project_name or reg.project_code}. "
+            f"It reflects {n} meeting{'s' if n != 1 else ''} held {'on' if n == 1 else 'between'} {span}. "
+            "Meeting minutes and the action tracker are kept in a separate document.")
+
+
+def spec_sections(reg: Register) -> list[tuple[str, list[Block]]]:
+    """The requirement specification: only what is to be built and how. Meeting minutes live in notes_sections."""
+    fr = _live([r for r in reg.requirements if r.kind == "FR"])
+    nfr = _live([r for r in reg.requirements if r.kind == "NFR"])
+    req_headers = ["ID", "Requirement", "Priority", "Status"]
 
     def req_rows(items):
-        return [[r.id, r.text + _flag(r), r.priority, r.requested_by, _ts(r), r.status] for r in items]
+        return [[r.id, r.text + _flag(r), r.priority, r.status] for r in items]
 
+    when = _meeting_dates(reg)
+    last = max((m.date for m in reg.meetings if m.date), default="")
+    process: list[Block] = []
     if flowchart.clean_steps(reg.tobe_steps):
-        diagram: list[Block] = [("diagram", reg.diagram_mermaid, reg.tobe_steps)]
+        process = [_numbered(reg.tobe_steps), ("diagram", reg.diagram_mermaid, reg.tobe_steps)]
     else:
-        diagram = [("empty",)]
+        process = [("empty",)]
 
     return [
         ("Document control", [_table(["Field", "Value"], [
             ["Project", f"{reg.project_code} {reg.project_name}".strip()],
-            ["Meeting", meeting.title if meeting else ""],
-            ["Date", meeting.date if meeting else ""],
-            ["Attendees", ", ".join(meeting.attendees) if meeting else ""],
             ["Version", reg.version],
             ["Status", reg.doc_status],
             ["Reviewer", reg.reviewer or "TBC"],
+            ["Last updated", pretty(last) if last else ""],
         ])]),
-        ("Meeting summary", [("text", reg.summary)] if reg.summary else [("empty",)]),
-        ("Business objectives", [_bullets(reg.objectives)]),
+        ("Overview and objectives", [("text", _overview(reg)), _bullets(reg.objectives)]),
         ("Scope", [("sub", "In scope"), _bullets(reg.scope_in), ("sub", "Out of scope"), _bullets(reg.scope_out),
-                   ("sub", "Deferred"), _bullets(reg.scope_deferred)]),
-        ("Stakeholders and users", [_bullets(reg.stakeholders)]),
+                   ("sub", "Deferred to a later phase"), _bullets(reg.scope_deferred)]),
+        ("Users and stakeholders", [_bullets(reg.stakeholders)]),
         ("Functional requirements", [_table(req_headers, req_rows(fr))]),
         ("Non-functional requirements", [_table(req_headers, req_rows(nfr))]),
-        ("Current process (as-is)", [_numbered(reg.asis_steps)]),
-        ("Proposed process (to-be)", [_numbered(reg.tobe_steps)]),
-        ("Workflow diagram", diagram),
-        ("Business rules", [_table(["ID", "Rule", "Time"], [[r.id, r.text + _flag(r), _ts(r)] for r in reg.business_rules])]),
+        ("Business rules", [_table(["ID", "Rule", "Status"], [[r.id, r.text + _flag(r), r.status] for r in _live(reg.business_rules)])]),
+        ("Process and workflow", process),
         ("Data and fields", [_bullets(reg.data_fields)]),
         ("Assumptions and constraints", [_bullets(reg.assumptions)]),
-        ("Decisions made", [_table(["ID", "Decision", "Decided by", "Time"],
-                                   [[d.id, d.text + _flag(d), d.decided_by, _ts(d)] for d in reg.decisions])]),
-        ("Open questions", [_table(["ID", "Question", "Owner", "Time", "Status"],
-                                   [[q.id, q.text + _flag(q), q.owner, _ts(q), q.status] for q in reg.questions])]),
-        ("Action items", [_table(["ID", "Task", "Owner", "Due", "Time", "Status"],
-                                 [[a.id, a.task + _flag(a), a.owner, a.due, _ts(a), a.status] for a in reg.actions])]),
-        ("Risks", [_table(["ID", "Risk", "Time"], [[r.id, r.text + _flag(r), _ts(r)] for r in reg.risks])]),
+        ("Agreed decisions", [_table(["ID", "Decision", "Date agreed"],
+                                     [[d.id, d.text + _flag(d), pretty(when.get(d.source_meeting, ""))] for d in _live(reg.decisions)])]),
+        ("Risks", [_table(["ID", "Risk", "Status"], [[r.id, r.text + _flag(r), r.status] for r in _live(reg.risks)])]),
         ("Glossary", [_table(["Term", "Meaning"], [[g.term, g.meaning] for g in reg.glossary])]),
+    ]
+
+
+def _meeting_dates(reg: Register) -> dict[str, str]:
+    return {m.id: m.date for m in reg.meetings}
+
+
+def _action_sort_key(a) -> tuple:
+    done = a.status in ("Done", "Withdrawn")
+    return (done, a.due_date or "9999-99-99", a.id)
+
+
+def is_overdue(a, today: str) -> bool:
+    return a.status == "Open" and bool(a.due_date) and a.due_date < today
+
+
+def notes_sections(reg: Register, summaries: dict[str, str] | None = None) -> list[tuple[str, list[Block]]]:
+    """Meeting notes and the action tracker: what was asked, by whom, when, and what is still open."""
+    summaries = summaries or {}
+    names = _meeting_names(reg)
+    today = today_sgt()
+
+    def due_cell(a) -> str:
+        if a.due_date:
+            said = f"\n“{a.due}”" if a.due and a.due.strip().lower() != a.due_date else ""
+            return pretty(a.due_date) + said
+        return a.due
+
+    def closed_cell(a) -> str:
+        if not a.closed_date:
+            return ""
+        return pretty(a.closed_date) + (f"\n{names[a.closed_meeting].split(' · ', 1)[1]}" if a.closed_meeting in names else "")
+
+    actions = sorted(reg.actions, key=_action_sort_key)
+    tracker = _table(["ID", "Action", "Owner", "Raised", "Due", "Status", "Closed"], [
+        [a.id, a.task + _flag(a), a.owner, names.get(a.source_meeting, pretty(a.raised_date)).replace(" · ", "\n"),
+         due_cell(a), "Overdue" if is_overdue(a, today) else a.status, closed_cell(a)]
+        for a in actions])
+    updates = [f"{a.id}: {u}" for a in actions for u in a.updates]
+    action_blocks = [tracker] + ([("sub", "Changes since first raised"), _bullets(updates)] if updates else [])
+
+    questions = _table(["ID", "Question", "Owner", "Raised", "Status", "Answer"], [
+        [q.id, q.text + _flag(q), q.owner, names.get(q.source_meeting, "").replace(" · ", "\n"), q.status, q.answer]
+        for q in reg.questions])
+
+    meeting_blocks: list[Block] = []
+    for m in sorted(reg.meetings, key=lambda x: x.date):
+        meeting_blocks.append(("sub", f"{pretty(m.date)} · {m.title}"))
+        if m.attendees:
+            meeting_blocks.append(("text", "Attendees: " + ", ".join(m.attendees)))
+        text = summaries.get(m.id) or (reg.summary if m is reg.meetings[-1] else "")
+        meeting_blocks.append(("text", text) if text else ("empty",))
+    return [
+        ("Action tracker", action_blocks),
+        ("Open questions", [questions]),
+        ("Meetings", meeting_blocks or [("empty",)]),
+        ("Current process (as-is)", [_numbered(reg.asis_steps)]),
     ]
 
 
@@ -140,7 +212,7 @@ def _md_block(block: Block) -> str:
 
 def render_markdown(reg: Register) -> str:
     out = [f"# {doc_title(reg)}", "", f"**Status: {status_line(reg)}**", ""]
-    for n, (heading, blocks) in enumerate(sections(reg), 1):
+    for n, (heading, blocks) in enumerate(spec_sections(reg), 1):
         out += [f"## {n}. {heading}", ""]
         for b in blocks:
             out += [_md_block(b), ""]
@@ -159,11 +231,12 @@ _SGT = timezone(timedelta(hours=8))
 _PAGE_W_CM = 17.0  # A4 with 2 cm margins
 
 # column widths in cm for known headers; the remaining width is shared by the text columns
-_COL_CM = {"ID": 1.7, "Priority": 1.8, "Requested by": 2.6, "Time": 1.9, "Status": 1.9, "Owner": 2.4,
-           "Due": 2.0, "Decided by": 2.6, "Field": 3.5, "Term": 4.0}
+_COL_CM = {"ID": 1.6, "Priority": 1.8, "Status": 1.9, "Owner": 2.1, "Raised": 2.6, "Due": 2.4, "Closed": 2.4,
+           "Date agreed": 2.5, "Field": 3.5, "Term": 4.0}
 
+OVERDUE = "B3261E"
 _STATUS_COLOR = {"open": AMBER, "proposed": AMBER, "done": GREEN, "answered": GREEN, "confirmed": GREEN,
-                 "approved": GREEN, "agreed": GREEN, "withdrawn": GREY}
+                 "approved": GREEN, "agreed": GREEN, "withdrawn": GREY, "overdue": OVERDUE}
 
 
 def _clean(text: str) -> str:
@@ -316,7 +389,7 @@ def _set_cell_text(cell, text: str, header: str, size: float = 9) -> None:
         r.font.color.rgb = _rgb(_STATUS_COLOR[body.lower()])
     elif header == "Priority" and body.lower() in ("must", "high"):
         r.bold = True
-    elif header in ("Time", "Due"):
+    elif header in ("Raised", "Due", "Closed", "Date agreed"):
         r.font.color.rgb = _rgb(GREY)
     if flagged:
         w = p.add_run(f" {WARN}")
@@ -456,7 +529,7 @@ def _setup_page(doc, reg: Register) -> None:
     _add_field(fp, "NUMPAGES", "1", size=8, color=GREY)
 
 
-def _cover(doc, reg: Register) -> None:
+def _cover(doc, reg: Register, label: str = "REQUIREMENT SPECIFICATION") -> None:
     from docx.enum.text import WD_BREAK
     from docx.shared import Cm, Pt
 
@@ -470,7 +543,7 @@ def _cover(doc, reg: Register) -> None:
     rule.paragraph_format.space_after = Pt(10)
 
     eyebrow = doc.add_paragraph()
-    r = eyebrow.add_run("REQUIREMENT SPECIFICATION")
+    r = eyebrow.add_run(label)
     r.bold = True
     r.font.size = Pt(10)
     r.font.color.rgb = _rgb(GREY)
@@ -587,18 +660,37 @@ def _diagram(doc, steps: list[str]) -> None:
     r.font.color.rgb = _rgb(GREY)
 
 
-def render_docx(reg: Register) -> bytes:
+DOC_KINDS = {
+    "spec": ("REQUIREMENT SPECIFICATION", "Requirement specification"),
+    "notes": ("MEETING NOTES & ACTION TRACKER", "Meeting notes and action tracker"),
+}
+
+
+def render_docx(reg: Register, kind: str = "spec", summaries: dict[str, str] | None = None) -> bytes:
+    """kind 'spec': the lean requirement specification. kind 'notes': meeting notes and the action tracker.
+    The table of contents is filled in by Word when it is available (REQDOC_WORD_TOC), otherwise Word is
+    asked to fill it in when the file is opened."""
+    raw = _build_docx(reg, kind, summaries, ask_word_to_update=not config.WORD_TOC)
+    if config.WORD_TOC:
+        refreshed = word_fields.refresh_fields(raw)
+        return refreshed if refreshed is not None else _build_docx(reg, kind, summaries, ask_word_to_update=True)
+    return raw
+
+
+def _build_docx(reg: Register, kind: str, summaries: dict[str, str] | None, ask_word_to_update: bool) -> bytes:
     from docx import Document
 
+    cover_label, subject = DOC_KINDS[kind]
     doc = Document(str(TEMPLATE)) if TEMPLATE.exists() else Document()
     _setup_styles(doc)
     _setup_page(doc, reg)
     cp = doc.core_properties
-    cp.title, cp.author, cp.subject = _clean(doc_title(reg)), "ReqDoc AI", "Requirement specification"
+    cp.title, cp.author, cp.subject = _clean(doc_title(reg)), "ReqDoc AI", subject
 
-    secs = sections(reg)
-    _cover(doc, reg)
-    _contents(doc, [f"{n}. {h}" for n, (h, _) in enumerate(secs, 1)] + ["Appendix"])
+    secs = spec_sections(reg) if kind == "spec" else notes_sections(reg, summaries)
+    _cover(doc, reg, cover_label)
+    appendix = kind == "spec"
+    _contents(doc, [f"{n}. {h}" for n, (h, _) in enumerate(secs, 1)] + (["Appendix"] if appendix else []))
 
     def add_empty():
         p = doc.add_paragraph()
@@ -626,18 +718,19 @@ def render_docx(reg: Register) -> bytes:
             else:
                 _add_table(doc, b[1], b[2], key_value=b[1] == ["Field", "Value"])
 
-    meetings, log = appendix_lines(reg)
-    doc.add_heading("Appendix", level=1)
-    doc.add_heading("Source meetings", level=2)
-    for m in meetings or ["—"]:
-        doc.add_paragraph(_clean(m), style="List Bullet")
-    if log:
-        doc.add_heading("Change log", level=2)
-        for line in log:
-            doc.add_paragraph(_clean(line), style="List Bullet")
+    if appendix:
+        meetings, log = appendix_lines(reg)
+        doc.add_heading("Appendix", level=1)
+        doc.add_heading("Source meetings", level=2)
+        for m in meetings or ["—"]:
+            doc.add_paragraph(_clean(m), style="List Bullet")
+        if log:
+            doc.add_heading("Change log", level=2)
+            for line in log:
+                doc.add_paragraph(_clean(line), style="List Bullet")
 
-    # ask Word to fill in the table of contents page numbers when the file opens
-    doc.settings.element.append(_el("w:updateFields", val="true"))
+    if ask_word_to_update:  # fallback: Word fills in the table of contents page numbers when the file opens
+        doc.settings.element.append(_el("w:updateFields", val="true"))
 
     buf = io.BytesIO()
     doc.save(buf)

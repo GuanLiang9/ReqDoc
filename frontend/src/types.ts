@@ -42,7 +42,15 @@ export interface Question extends Tracked {
 export interface Action extends Tracked {
   task: string;
   owner: string;
+  /** the due date as it was said ("Friday") */
   due: string;
+  /** the same, as a real date (YYYY-MM-DD); empty when it could not be worked out */
+  due_date: string;
+  /** date of the meeting that gave the action */
+  raised_date: string;
+  closed_meeting: string;
+  closed_date: string;
+  updates: string[];
 }
 export interface Risk extends Tracked {
   text: string;

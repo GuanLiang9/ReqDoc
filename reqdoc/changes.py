@@ -9,6 +9,7 @@ from difflib import SequenceMatcher
 from itertools import chain
 
 from . import config
+from .dates import pretty
 from .llm import LLMClient
 from .models import (
     Action, Change, Decision, DiffPass, ITEM_CATEGORIES, LIST_CATEGORIES, Question, Register, Requirement,
@@ -101,14 +102,39 @@ def _diff_category(category: str, existing: list, new: list, llm: LLMClient) -> 
                 continue
             target = by_id[m.target_id]
             kind = m.type
-            if kind == "Same" or (kind == "Confirmed" and category not in CONFIRMABLE):
-                continue
-            if kind == "Changed" and item_text(item).strip().lower() == item_text(target).strip().lower():
+            unchanged = kind == "Same" or (kind == "Confirmed" and category not in CONFIRMABLE) or (
+                kind == "Changed" and item_text(item).strip().lower() == item_text(target).strip().lower())
+            if unchanged:
+                # same action, but this meeting may have moved the owner or the due date
+                update = _action_update(target, item) if category == "actions" else None
+                if update:
+                    changes.append(update)
                 continue
             changes.append(Change(type=kind, category=category, target_id=target.id, text=item_text(item),
                                   old=item_text(target), timestamp=getattr(item, "timestamp", ""),
                                   quote=getattr(item, "quote", ""), item=item.model_dump()))
     return changes
+
+
+def _action_detail(task: str, owner: str, due: str, due_date: str) -> str:
+    when = f"{due} ({pretty(due_date)})" if due and due_date and due.strip().lower() != due_date else (due or pretty(due_date))
+    return f"{task} (owner: {owner or 'nobody'}, due: {when or 'no date'})"
+
+
+def _action_update(target, item) -> Change | None:
+    """The new meeting repeats an existing action with a different owner or due date."""
+    new_owner, new_due = item.owner.strip(), item.due.strip()
+    owner_moved = bool(new_owner) and new_owner.lower() != target.owner.strip().lower()
+    due_moved = bool(new_due) and new_due.lower() != target.due.strip().lower() and not (
+        item.due_date and item.due_date == target.due_date)
+    if not (owner_moved or due_moved):
+        return None
+    return Change(type="Changed", category="actions", target_id=target.id,
+                  text=_action_detail(target.task, new_owner if owner_moved else target.owner,
+                                      new_due if due_moved else target.due,
+                                      item.due_date if due_moved else target.due_date),
+                  old=_action_detail(target.task, target.owner, target.due, target.due_date),
+                  timestamp=item.timestamp, quote=item.quote, item=item.model_dump())
 
 
 def _new_change(category: str, item) -> Change:
@@ -203,6 +229,8 @@ def apply_change(reg: Register, change: Change) -> None:
         data = dict(change.item)
         data["id"] = next_id(reg, prefix_for(cat, data))
         data["source_meeting"] = meeting.id if meeting else ""
+        if cat == "actions":
+            data["raised_date"] = data.get("raised_date") or when
         new_item = ITEM_CLASSES[cat](**data)
         items.append(new_item)
         reg.change_log.append(f"{when} added {new_item.id}: {change.text}{ev}")
@@ -212,10 +240,14 @@ def apply_change(reg: Register, change: Change) -> None:
     if target is None:
         raise ValueError(f"{change.target_id} not found in the draft")
     old = item_text(target)
+    label = f"{pretty(when)} · {meeting.title}" if meeting else pretty(when)
     if change.type in ("Changed", "Conflict"):  # an accepted conflict means "use the new version"
-        _set_text(target, change.text)
+        new_text = (change.item.get("task") if cat == "actions" else None) or change.text
+        _set_text(target, new_text)
         if cat == "requirements" and change.item.get("priority", "Not stated") != "Not stated":
             target.priority = change.item["priority"]
+        if cat == "actions":
+            _update_action(target, change.item, label)
         target.timestamp = change.timestamp or target.timestamp
         target.quote = change.quote or target.quote
         reg.change_log.append(f'{when} {target.id} changed: "{old}" -> "{change.text}"{ev}')
@@ -224,10 +256,34 @@ def apply_change(reg: Register, change: Change) -> None:
         reg.change_log.append(f"{when} {target.id} confirmed as agreed{ev}")
     elif change.type == "Withdrawn":
         target.status = "Withdrawn"
+        if cat == "actions":
+            _close_action(target, meeting, when, "withdrawn")
         reg.change_log.append(f"{when} {target.id} withdrawn: {old}{ev}")
     elif change.type == "Answered":
         target.status, target.answer = "Answered", change.text
         reg.change_log.append(f"{when} {target.id} answered: {change.text}{ev}")
     elif change.type == "ActionDone":
         target.status = "Done"
+        _close_action(target, meeting, when, "done")
         reg.change_log.append(f"{when} {target.id} done: {old}{ev}")
+
+
+def _update_action(target, item: dict, label: str) -> None:
+    """Take a moved owner or due date from the meeting and keep a line saying so."""
+    notes = []
+    owner = (item.get("owner") or "").strip()
+    if owner and owner.lower() != target.owner.strip().lower():
+        notes.append(f"owner {target.owner or 'nobody'} -> {owner}")
+        target.owner = owner
+    due = (item.get("due") or "").strip()
+    if due and due.lower() != target.due.strip().lower() and not (item.get("due_date") and item["due_date"] == target.due_date):
+        notes.append(f"due {target.due or 'none'} -> {due}" + (f" ({pretty(item['due_date'])})" if item.get("due_date") else ""))
+        target.due, target.due_date = due, item.get("due_date") or ""
+    if notes:
+        target.updates.append(f"{label}: " + "; ".join(notes))
+
+
+def _close_action(target, meeting, when: str, how: str) -> None:
+    target.closed_meeting = meeting.id if meeting else ""
+    target.closed_date = when
+    target.updates.append(f"{pretty(when)}{' · ' + meeting.title if meeting else ''}: {how}")
