@@ -45,6 +45,7 @@ class Decision(BaseModel):
 class DiagramRequest(BaseModel):
     steps: list[str]
     cols: int = 4
+    palette: str = "web"
 
 
 # --- health --------------------------------------------------------------------
@@ -278,7 +279,7 @@ def diagram_svg(body: DiagramRequest):
     """Stateless: the website sends the steps it is showing, so the picture follows unsaved edits."""
     if len(body.steps) > 200 or any(len(s) > 2000 for s in body.steps):
         raise HTTPException(422, "Too many or too long steps for a diagram")
-    return Response(flowchart.to_svg(body.steps, max(1, min(body.cols, 6))), media_type="image/svg+xml")
+    return Response(flowchart.to_svg(body.steps, max(1, min(body.cols, 6)), body.palette), media_type="image/svg+xml")
 
 
 # --- the React app -------------------------------------------------------------

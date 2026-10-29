@@ -62,8 +62,8 @@ export default function UploadModal({ open, code, hasMaster, onClose, onStarted 
     <Modal
       title={
         <div>
-          <div className="eyebrow mb-1">{hasMaster ? 'Follow-up meeting' : 'First meeting'}</div>
-          <div className="display text-[26px]">Upload a meeting</div>
+          <div className="mb-1 text-[14px] font-semibold text-blue">{hasMaster ? 'Follow-up meeting' : 'First meeting'}</div>
+          <div className="headline text-[32px]">Upload a meeting</div>
         </div>
       }
       open={open}
@@ -92,11 +92,11 @@ export default function UploadModal({ open, code, hasMaster, onClose, onStarted 
           <p className="ant-upload-text">Click or drag the meeting file here</p>
           <div className="mx-auto flex max-w-md flex-col items-center gap-2 px-4 pb-1 pt-2">
             <div className="flex flex-wrap justify-center gap-1.5">
-              <span className="eyebrow mr-1 self-center">Recording</span>
+              <span className="mr-1 self-center text-[13px] font-medium text-grey">Recording</span>
               {AUDIO.map((t) => <Chip key={t} tone="muted">{t}</Chip>)}
             </div>
             <div className="flex flex-wrap justify-center gap-1.5">
-              <span className="eyebrow mr-1 self-center">Transcript</span>
+              <span className="mr-1 self-center text-[13px] font-medium text-grey">Transcript</span>
               {TEXT.map((t) => <Chip key={t} tone="muted">{t}</Chip>)}
             </div>
           </div>
@@ -112,11 +112,11 @@ export default function UploadModal({ open, code, hasMaster, onClose, onStarted 
 
       {sending && <Progress percent={Math.round(sent * 100)} size="small" />}
       {error && (
-        <div role="alert" className="mb-3 rounded-xl border border-[#E6BDB6] bg-rose px-4 py-3 text-[14px]" style={{ color: '#6E2A22' }}>
+        <div role="alert" className="mb-3 rounded-2xl bg-red-tint px-4 py-3 text-[14px] text-red">
           {error}
         </div>
       )}
-      <p className="serif m-0 text-[18px] leading-snug text-muted">
+      <p className="m-0 text-[15px] leading-snug text-ink2">
         {hasMaster
           ? 'This updates the existing document. You will review every change before it counts.'
           : 'This creates the first draft of the requirement document.'}{' '}

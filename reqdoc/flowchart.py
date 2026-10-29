@@ -22,6 +22,19 @@ GREY = "#54555B"
 LINE = "#C9C4B6"
 WHITE = "#FFFFFF"
 
+# Two looks for the same layout: "word" keeps the Woh Hup gold for the Word document,
+# "web" follows the website (apple.com style: light grey boxes, blue numbers, orange decisions).
+PALETTES = {
+    "word": dict(text=INK, pill=INK, pill_text=WHITE, box_fill=WHITE, box_stroke=INK, box_sw=1.4,
+                 dec_fill=GOLD_TINT, dec_stroke=GOLD, dec_sw=2, badge=INK, badge_text=WHITE,
+                 dec_badge=GOLD, dec_badge_text=INK, label=GOLD_DEEP, muted=GREY, arrow=GREY,
+                 font="'Segoe UI', Inter, system-ui, Arial, sans-serif"),
+    "web": dict(text="#1D1D1F", pill="#1D1D1F", pill_text="#FFFFFF", box_fill="#F5F5F7", box_stroke="#E8E8ED", box_sw=1,
+                dec_fill="#FFF1E6", dec_stroke="#FFD2AD", dec_sw=1.4, badge="#0071E3", badge_text="#FFFFFF",
+                dec_badge="#B64400", dec_badge_text="#FFFFFF", label="#B64400", muted="#86868B", arrow="#86868B",
+                font="-apple-system, BlinkMacSystemFont, 'SF Pro Text', Inter, 'Segoe UI', Arial, sans-serif"),
+}
+
 # geometry (logical px)
 CELL_W = 224
 GAP = 60
@@ -160,7 +173,7 @@ def layout(steps: list[str], cols: int) -> Layout:
 
 # --- drawing primitives (shared by both painters) ---------------------------------
 
-def _prims(lay: Layout, r0: int, r1: int) -> tuple[list[tuple], float, float]:
+def _prims(lay: Layout, r0: int, r1: int, pal: dict) -> tuple[list[tuple], float, float]:
     """Primitives for rows r0..r1 (inclusive), shifted so the slice starts near the top.
     Returns (primitives, width, height). A slice that does not start at row 0 or end at the last row
     gets a 'continued' stub so the reader knows the flow carries on."""
@@ -172,7 +185,7 @@ def _prims(lay: Layout, r0: int, r1: int) -> tuple[list[tuple], float, float]:
     out: list[tuple] = []
 
     def arrow(x1, y1, x2, y2):
-        out.append(("arrow", x1, y1, x2, y2))
+        out.append(("arrow", x1, y1, x2, y2, pal["arrow"]))
 
     # edges first so boxes sit on top
     all_nodes = lay.nodes
@@ -188,7 +201,7 @@ def _prims(lay: Layout, r0: int, r1: int) -> tuple[list[tuple], float, float]:
                 x1, x2 = a.x + a.w, b.x
             arrow(x1, y, x2, y)
             if label:
-                out.append(("text", (x1 + x2) / 2, y - 7, label, 12, True, GOLD_DEEP, "middle"))
+                out.append(("text", (x1 + x2) / 2, y - 7, label, 12, True, pal["label"], "middle"))
         else:
             x = a.x + a.w / 2
             y1, y2 = a.y + a.h + dy, b.y + dy
@@ -196,38 +209,38 @@ def _prims(lay: Layout, r0: int, r1: int) -> tuple[list[tuple], float, float]:
                 y2 = y1 + ROW_GAP - 6
             arrow(x, y1, x, y2)
             if label:
-                out.append(("text", x + 8, (y1 + y2) / 2 + 4, label, 12, True, GOLD_DEEP, "start"))
+                out.append(("text", x + 8, (y1 + y2) / 2 + 4, label, 12, True, pal["label"], "start"))
     if last:
         n = max((n for n in nodes if n.row == r1), key=lambda n: n.col if r1 % 2 == 0 else -n.col)
-        out.append(("text", n.x + n.w / 2, n.y + n.h + dy + ROW_GAP + 4, "continued on the next part", 12, False, GREY, "middle"))
+        out.append(("text", n.x + n.w / 2, n.y + n.h + dy + ROW_GAP + 4, "continued on the next part", 12, False, pal["muted"], "middle"))
     if first:
         n = min((n for n in nodes if n.row == r0), key=lambda n: n.col if r0 % 2 == 0 else -n.col)
         cx = n.x + n.w / 2
-        out.append(("text", cx, MARGIN + 2, "continued from the previous part", 12, False, GREY, "middle"))
+        out.append(("text", cx, MARGIN + 2, "continued from the previous part", 12, False, pal["muted"], "middle"))
         arrow(cx, MARGIN + 8, cx, n.y + dy)
 
     for n in nodes:
         x, y = n.x, n.y + dy
         if n.kind in ("start", "end"):
-            out.append(("rect", x, y, n.w, n.h, n.h / 2, INK, INK, 1))
-            out.append(("text", x + n.w / 2, y + n.h / 2 + 5, n.lines[0], FONT, True, WHITE, "middle"))
+            out.append(("rect", x, y, n.w, n.h, n.h / 2, pal["pill"], pal["pill"], 1))
+            out.append(("text", x + n.w / 2, y + n.h / 2 + 5, n.lines[0], FONT, True, pal["pill_text"], "middle"))
             continue
         decision = n.kind == "decision"
-        out.append(("rect", x, y, n.w, n.h, 12, GOLD_TINT if decision else WHITE, GOLD if decision else INK, 2 if decision else 1.4))
+        out.append(("rect", x, y, n.w, n.h, 12 if pal is PALETTES["word"] else 16, pal["dec_fill"] if decision else pal["box_fill"],
+                    pal["dec_stroke"] if decision else pal["box_stroke"], pal["dec_sw"] if decision else pal["box_sw"]))
         cx, cy = x + PAD + BADGE_R, y + PAD + BADGE_R
-        out.append(("circle", cx, cy, BADGE_R, GOLD if decision else INK))
-        out.append(("text", cx, cy + 4.5, str(n.number), 12, True, INK if decision else WHITE, "middle"))
+        out.append(("circle", cx, cy, BADGE_R, pal["dec_badge"] if decision else pal["badge"]))
+        out.append(("text", cx, cy + 4.5, str(n.number), 12, True, pal["dec_badge_text"] if decision else pal["badge_text"], "middle"))
         if decision:
-            out.append(("text", cx + BADGE_R + 8, cy + 4, "DECISION", 10.5, True, GOLD_DEEP, "start"))
+            out.append(("text", cx + BADGE_R + 8, cy + 4, "DECISION", 10.5, True, pal["label"], "start"))
         for i, line in enumerate(n.lines):
-            out.append(("text", x + PAD, y + PAD + 22 + 8 + 14 + i * LINE_H - 3, line, FONT, False, INK, "start"))
+            out.append(("text", x + PAD, y + PAD + 22 + 8 + 14 + i * LINE_H - 3, line, FONT, False, pal["text"], "start"))
     return out, lay.width, (lay.row_y[r1] + lay.row_h[r1] + dy + MARGIN + (ROW_GAP if last else 0))
 
 
 # --- painters ---------------------------------------------------------------------
 
 ARROW_HEAD = 8
-SVG_FONT = "'Segoe UI', Inter, system-ui, Arial, sans-serif"
 
 
 def _arrow_head(x1, y1, x2, y2) -> list[tuple[float, float]]:
@@ -239,10 +252,10 @@ def _arrow_head(x1, y1, x2, y2) -> list[tuple[float, float]]:
     return [(x2, y2), (x2 - ARROW_HEAD / 2 - 1, y2 - s * ARROW_HEAD), (x2 + ARROW_HEAD / 2 + 1, y2 - s * ARROW_HEAD)]
 
 
-def _svg(prims: list[tuple], width: float, height: float) -> str:
+def _svg(prims: list[tuple], width: float, height: float, font: str) -> str:
     parts = [
         f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width:.0f} {height:.0f}" width="{width:.0f}" height="{height:.0f}" '
-        f'role="img" aria-label="Workflow diagram" font-family="{SVG_FONT}">'
+        f'role="img" aria-label="Workflow diagram" font-family="{font}">'
     ]
     for p in prims:
         kind = p[0]
@@ -253,10 +266,10 @@ def _svg(prims: list[tuple], width: float, height: float) -> str:
             _, x, y, r, fill = p
             parts.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="{r}" fill="{fill}"/>')
         elif kind == "arrow":
-            _, x1, y1, x2, y2 = p
+            _, x1, y1, x2, y2, color = p
             head = " ".join(f"{px:.1f},{py:.1f}" for px, py in _arrow_head(x1, y1, x2, y2))
-            parts.append(f'<line x1="{x1:.1f}" y1="{y1:.1f}" x2="{x2:.1f}" y2="{y2:.1f}" stroke="{GREY}" stroke-width="1.6"/>')
-            parts.append(f'<polygon points="{head}" fill="{GREY}"/>')
+            parts.append(f'<line x1="{x1:.1f}" y1="{y1:.1f}" x2="{x2:.1f}" y2="{y2:.1f}" stroke="{color}" stroke-width="1.6"/>')
+            parts.append(f'<polygon points="{head}" fill="{color}"/>')
         else:
             _, x, y, text, size, bold, color, anchor = p
             weight = ' font-weight="700"' if bold else ""
@@ -278,9 +291,9 @@ def _png(prims: list[tuple], width: float, height: float, scale: int = 2) -> byt
             _, x, y, r, fill = p
             d.ellipse([(x - r) * k, (y - r) * k, (x + r) * k, (y + r) * k], fill=fill)
         elif kind == "arrow":
-            _, x1, y1, x2, y2 = p
-            d.line([x1 * k, y1 * k, x2 * k, y2 * k], fill=GREY, width=round(1.6 * k))
-            d.polygon([(px * k, py * k) for px, py in _arrow_head(x1, y1, x2, y2)], fill=GREY)
+            _, x1, y1, x2, y2, color = p
+            d.line([x1 * k, y1 * k, x2 * k, y2 * k], fill=color, width=round(1.6 * k))
+            d.polygon([(px * k, py * k) for px, py in _arrow_head(x1, y1, x2, y2)], fill=color)
         else:
             _, x, y, text, size, bold, color, anchor = p
             d.text((x * k, y * k), text, font=_font(size * k, bold), fill=color, anchor="ms" if anchor == "middle" else "ls")
@@ -289,12 +302,13 @@ def _png(prims: list[tuple], width: float, height: float, scale: int = 2) -> byt
     return buf.getvalue()
 
 
-def to_svg(steps: list[str], cols: int = 4) -> str:
-    """The whole diagram as one SVG ('' when there are no steps)."""
+def to_svg(steps: list[str], cols: int = 4, palette: str = "web") -> str:
+    """The whole diagram as one SVG ('' when there are no steps). palette: "web" or "word"."""
     if not clean_steps(steps):
         return ""
+    pal = PALETTES.get(palette, PALETTES["web"])
     lay = layout(steps, cols)
-    return _svg(*_prims(lay, 0, len(lay.row_y) - 1))
+    return _svg(*_prims(lay, 0, len(lay.row_y) - 1, pal), pal["font"])
 
 
 def to_png_parts(steps: list[str], cols: int = 3, max_height: float = 860) -> list[bytes]:
@@ -306,7 +320,7 @@ def to_png_parts(steps: list[str], cols: int = 3, max_height: float = 860) -> li
     for r in range(len(lay.row_y)):
         height = lay.row_y[r] + lay.row_h[r] - lay.row_y[start] + 2 * MARGIN + TOP_STUB + ROW_GAP
         if height > max_height and r > start:
-            parts.append(_png(*_prims(lay, start, r - 1)))
+            parts.append(_png(*_prims(lay, start, r - 1, PALETTES["word"])))
             start = r
-    parts.append(_png(*_prims(lay, start, len(lay.row_y) - 1)))
+    parts.append(_png(*_prims(lay, start, len(lay.row_y) - 1, PALETTES["word"])))
     return parts

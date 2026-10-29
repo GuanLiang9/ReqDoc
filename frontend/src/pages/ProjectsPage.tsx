@@ -1,35 +1,36 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { App, Button, Form, Input, Modal, Table } from 'antd';
-import { ArrowRightOutlined, PlusOutlined } from '@ant-design/icons';
+import { Link, useNavigate } from 'react-router-dom';
+import { App, Button, Form, Input, Modal, Skeleton } from 'antd';
+import { AudioOutlined, FileWordOutlined, FolderAddOutlined, PlusOutlined } from '@ant-design/icons';
 import { api } from '../api';
 import type { ProjectRow } from '../types';
 import Chip from '../components/Chip';
 
 const STEPS = [
-  { n: '01', title: 'Create a project', text: 'A code and a name. One project per piece of work.' },
-  { n: '02', title: 'Upload a meeting', text: 'A recording, or a Teams transcript. It is turned into text on this computer.' },
-  { n: '03', title: 'Review and export', text: 'Fix anything the AI got wrong, approve it, and download the Word document.' },
+  { icon: <FolderAddOutlined />, title: 'Create a project', text: 'A code and a name. One project for each piece of work.' },
+  { icon: <AudioOutlined />, title: 'Upload a meeting', text: 'A recording or a Teams transcript. Recordings are turned into text on this computer.' },
+  { icon: <FileWordOutlined />, title: 'Review and export', text: 'Fix anything the AI got wrong, approve it, and download the Word documents.' },
 ];
 
-function EmptyState({ onCreate }: { onCreate: () => void }) {
+function ProjectTile({ p }: { p: ProjectRow }) {
   return (
-    <div className="px-6 py-14 text-center sm:px-12">
-      <p className="serif m-0 text-[28px] leading-tight text-ink">Nothing here yet.</p>
-      <p className="mx-auto mb-10 mt-2 max-w-md text-muted">Start with a project, then give it a meeting.</p>
-      <div className="mx-auto mb-10 grid max-w-3xl gap-6 text-left sm:grid-cols-3">
-        {STEPS.map((s) => (
-          <div key={s.n} className="border-t border-ink pt-3">
-            <div className="eyebrow">{s.n}</div>
-            <div className="mt-1 text-[15px] font-semibold">{s.title}</div>
-            <div className="mt-1 text-[13px] leading-5 text-muted">{s.text}</div>
-          </div>
-        ))}
-      </div>
-      <Button type="primary" size="large" icon={<PlusOutlined />} onClick={onCreate}>
-        Create your first project
-      </Button>
-    </div>
+    <Link to={`/projects/${p.code}`} className="tile tile-link flex min-h-[240px] flex-col p-7" aria-label={`${p.code} ${p.name}`}>
+      <span className="text-[13px] font-semibold tracking-[0.04em] text-grey">{p.code}</span>
+      <span className="mt-2 break-words text-[28px] font-semibold leading-[1.1] tracking-[-0.02em]">{p.name}</span>
+      <span className="mt-4 flex flex-wrap gap-1.5">
+        {p.version ? <Chip tone="approved" dot>v{p.version} approved</Chip> : <Chip tone="muted">Not approved yet</Chip>}
+        {p.has_draft && <Chip tone="draft" dot>Draft to review</Chip>}
+      </span>
+      <span className="mt-auto flex items-end justify-between pt-6">
+        <span className="text-[13px] text-grey">
+          {p.meetings} meeting{p.meetings === 1 ? '' : 's'}
+          {p.owner ? ` · ${p.owner}` : ''}
+        </span>
+        <span className="link-more text-[15px]" aria-hidden>
+          Open
+        </span>
+      </span>
+    </Link>
   );
 }
 
@@ -68,57 +69,84 @@ export default function ProjectsPage() {
     }
   };
 
+  const hasProjects = rows !== null && rows.length > 0;
+
   return (
     <div>
-      <div className="mb-8 flex flex-wrap items-end justify-between gap-6">
-        <div className="max-w-2xl">
-          <div className="eyebrow mb-3">Workspace</div>
-          <h1 className="display m-0 text-[40px] sm:text-[48px]">Projects</h1>
-          <p className="serif m-0 mt-3 text-[22px] leading-snug text-muted">
-            Each project keeps a single requirement document, up to date across every meeting.
+      {/* hero */}
+      <section className="bg-white px-5 pb-16 pt-16 text-center sm:pb-24 sm:pt-24">
+        <div className="fade-up mx-auto max-w-[900px]">
+          <p className="m-0 text-[17px] font-semibold text-orange">New</p>
+          <h1 className="hero-title mt-2">
+            Meetings in.
+            <br />
+            Requirements out.
+          </h1>
+          <p className="subhead mx-auto mt-5 max-w-[640px]">
+            Upload a recording. Get a requirement specification and an action tracker, ready for Word.
           </p>
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
+            <Button type="primary" size="large" onClick={() => setCreating(true)}>
+              {hasProjects ? 'New project' : 'Create your first project'}
+            </Button>
+            <button type="button" className="link-more" onClick={() => document.getElementById('how')?.scrollIntoView({ behavior: 'smooth' })}>
+              How it works
+            </button>
+          </div>
         </div>
-        <Button type="primary" size="large" icon={<PlusOutlined />} onClick={() => setCreating(true)}>
-          New project
-        </Button>
-      </div>
+      </section>
 
-      <div className="overflow-hidden rounded-2xl border border-line bg-white">
-        {rows !== null && rows.length === 0 ? (
-          <EmptyState onCreate={() => setCreating(true)} />
-        ) : (
-          <Table<ProjectRow>
-            className="row-clickable"
-            rowKey="code"
-            loading={rows === null}
-            dataSource={rows ?? []}
-            pagination={false}
-            scroll={{ x: 640 }}
-            onRow={(r) => ({
-              onClick: () => navigate(`/projects/${r.code}`),
-              onKeyDown: (e) => e.key === 'Enter' && navigate(`/projects/${r.code}`),
-              tabIndex: 0,
-            })}
-            columns={[
-              { title: 'Code', dataIndex: 'code', width: 150, render: (v: string) => <b className="tracking-wide">{v}</b> },
-              { title: 'Project', dataIndex: 'name', render: (v: string) => <span className="text-[15px] font-medium">{v}</span> },
-              { title: 'Owner', dataIndex: 'owner', width: 160, render: (v: string) => v || <span className="text-muted">—</span> },
-              { title: 'Meetings', dataIndex: 'meetings', width: 100, align: 'center', render: (v: number) => <span className="tnum">{v}</span> },
-              {
-                title: 'Document',
-                width: 260,
-                render: (_, r) => (
-                  <span className="flex flex-wrap gap-1.5">
-                    {r.version ? <Chip tone="approved" dot>v{r.version} approved</Chip> : <Chip tone="muted">Not approved yet</Chip>}
-                    {r.has_draft && <Chip tone="draft" dot>Draft to review</Chip>}
-                  </span>
-                ),
-              },
-              { title: '', width: 48, align: 'right', render: () => <ArrowRightOutlined className="row-arrow" /> },
-            ]}
-          />
-        )}
-      </div>
+      {/* projects */}
+      {(rows === null || hasProjects) && (
+        <section className="bg-canvas px-5 py-16 sm:py-20">
+          <div className="mx-auto w-full max-w-[1080px] sm:px-8">
+            <h2 className="headline mb-8 text-[32px] sm:text-[40px]">Your projects</h2>
+            {rows === null ? (
+              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                {[0, 1, 2].map((i) => (
+                  <div key={i} className="tile min-h-[240px] p-7">
+                    <Skeleton active paragraph={{ rows: 3 }} />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                {rows.map((p) => (
+                  <ProjectTile key={p.code} p={p} />
+                ))}
+                <button
+                  type="button"
+                  onClick={() => setCreating(true)}
+                  className="flex min-h-[240px] cursor-pointer flex-col items-center justify-center gap-3 rounded-[24px] border-2 border-dashed border-hair bg-transparent text-blue transition hover:border-blue hover:bg-blue-tint"
+                  aria-label="Create a new project"
+                >
+                  <PlusOutlined className="text-[32px]" />
+                  <span className="text-[17px]">New project</span>
+                </button>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* how it works */}
+      <section id="how" className={`px-5 py-16 sm:py-24 ${hasProjects || rows === null ? 'bg-white' : 'bg-canvas'}`}>
+        <div className="mx-auto w-full max-w-[1080px] sm:px-8">
+          <h2 className="headline mb-10 text-center">How it works</h2>
+          <div className="grid gap-5 md:grid-cols-3">
+            {STEPS.map((s, i) => (
+              <div key={s.title} className={`${hasProjects || rows === null ? 'bg-canvas' : 'bg-white'} rounded-[24px] p-8`}>
+                <div className="text-[40px] leading-none text-blue" aria-hidden>
+                  {s.icon}
+                </div>
+                <p className="m-0 mt-6 text-[13px] font-semibold text-grey">Step {i + 1}</p>
+                <h3 className="m-0 mt-1 text-[24px] font-semibold leading-tight tracking-[-0.015em]">{s.title}</h3>
+                <p className="m-0 mt-3 text-[17px] leading-[1.4] text-ink2">{s.text}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
       <Modal
         title="New project"
@@ -140,13 +168,13 @@ export default function ProjectsPage() {
               { pattern: /^[A-Za-z0-9][A-Za-z0-9_-]{1,29}$/, message: '2-30 letters, numbers, - or _' },
             ]}
           >
-            <Input placeholder="PRJ-0421" autoFocus />
+            <Input size="large" placeholder="PRJ-0421" autoFocus />
           </Form.Item>
           <Form.Item name="name" label="Project name" rules={[{ required: true, message: 'Enter a project name' }]}>
-            <Input placeholder="Site Diary App" />
+            <Input size="large" placeholder="Site Diary App" />
           </Form.Item>
           <Form.Item name="owner" label="Owner (optional)">
-            <Input placeholder="Who is responsible for this project" />
+            <Input size="large" placeholder="Who is responsible for this project" />
           </Form.Item>
         </Form>
       </Modal>

@@ -24,13 +24,13 @@ const CATEGORY: Record<string, string> = {
 };
 
 const TYPE: Record<ChangeType, { color: string; label: string; order: number }> = {
-  Conflict: { color: '#A8362B', label: 'Conflict · needs your decision', order: 0 },
-  Changed: { color: '#8F5A1E', label: 'Changed', order: 1 },
-  New: { color: '#2F5D3A', label: 'New', order: 2 },
-  Withdrawn: { color: '#6B6660', label: 'No longer needed', order: 3 },
-  Confirmed: { color: '#2C4A63', label: 'Confirmed', order: 4 },
-  Answered: { color: '#4B3F72', label: 'Question answered', order: 5 },
-  ActionDone: { color: '#2C4A63', label: 'Action done', order: 6 },
+  Conflict: { color: '#C4161C', label: 'Conflict · needs your decision', order: 0 },
+  Changed: { color: '#B64400', label: 'Changed', order: 1 },
+  New: { color: '#1D7A34', label: 'New', order: 2 },
+  Withdrawn: { color: '#6E6E73', label: 'No longer needed', order: 3 },
+  Confirmed: { color: '#0058B0', label: 'Confirmed', order: 4 },
+  Answered: { color: '#0058B0', label: 'Question answered', order: 5 },
+  ActionDone: { color: '#0058B0', label: 'Action done', order: 6 },
 };
 
 interface Props {
@@ -42,12 +42,12 @@ interface Props {
 }
 
 const Old = ({ children }: { children: string }) => (
-  <div className="rounded-lg bg-rose px-3 py-2 text-[#6E2A22] line-through decoration-[#C98A82]">{children}</div>
+  <div className="rounded-2xl bg-canvas px-4 py-3 text-ink2 line-through decoration-grey">{children}</div>
 );
 const New = ({ children }: { children: string }) => (
-  <div className="rounded-lg bg-sage px-3 py-2 text-[#24472D]">{children}</div>
+  <div className="rounded-2xl bg-blue-tint px-4 py-3 text-ink">{children}</div>
 );
-const Label = ({ children }: { children: string }) => <div className="eyebrow mb-1.5">{children}</div>;
+const Label = ({ children }: { children: string }) => <div className="mb-1.5 text-[12px] font-medium text-grey">{children}</div>;
 
 function Body({ c }: { c: Change }) {
   switch (c.type) {
@@ -70,7 +70,7 @@ function Body({ c }: { c: Change }) {
         <div className="grid gap-3 md:grid-cols-2">
           <div>
             <Label>{`Open question · ${c.target_id}`}</Label>
-            <div className="rounded-lg bg-stone px-3 py-2">{c.old}</div>
+            <div className="rounded-2xl bg-canvas px-4 py-3">{c.old}</div>
           </div>
           <div>
             <Label>Answer</Label>
@@ -114,9 +114,9 @@ export default function ChangesTab({ changes, busy, onDecide, onAcceptSafe, onEv
 
   if (!changes.length) {
     return (
-      <div className="py-12 text-center">
-        <p className="serif m-0 text-[24px]">No follow-up changes.</p>
-        <p className="m-0 mt-1 text-muted">This draft is the first version of the document.</p>
+      <div className="tile py-16 text-center">
+        <p className="headline m-0 text-[28px]">No follow-up changes.</p>
+        <p className="subhead mt-2 text-[17px]">This draft is the first version of the document.</p>
       </div>
     );
   }
@@ -138,15 +138,15 @@ export default function ChangesTab({ changes, busy, onDecide, onAcceptSafe, onEv
       </div>
 
       {pending.some((c) => c.type === 'Conflict') && (
-        <p className="serif m-0 mb-5 text-[20px] leading-snug" style={{ color: '#8F5A1E' }}>
+        <p className="m-0 mb-5 text-[17px] leading-snug text-orange">
           Conflicts are never decided by the AI. Choose which version is right for each one.
         </p>
       )}
 
       {!shown.length && (
-        <div className="py-12 text-center">
-          <p className="serif m-0 text-[24px]">Every change is decided.</p>
-          <p className="m-0 mt-1 text-muted">Review the Requirements tab, then approve.</p>
+        <div className="tile py-16 text-center">
+          <p className="headline m-0 text-[28px]">Every change is decided.</p>
+          <p className="subhead mt-2 text-[17px]">Review the Requirements tab, then approve.</p>
         </div>
       )}
 
@@ -156,10 +156,10 @@ export default function ChangesTab({ changes, busy, onDecide, onAcceptSafe, onEv
             key={c.id}
             data-testid="change-card"
             data-type={c.type}
-            className={`rounded-2xl border border-line bg-[#FCFBF7] p-5 ${c.type === 'Conflict' && c.decision === 'pending' ? 'rule-left' : ''}`}
+            className={`tile p-6 ${c.type === 'Conflict' && c.decision === 'pending' ? 'ring-2 ring-orange' : ''}`}
           >
             <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2">
-              <span className="eyebrow flex items-center gap-2" style={{ color: TYPE[c.type].color }}>
+              <span className="flex items-center gap-2 text-[14px] font-semibold" style={{ color: TYPE[c.type].color }}>
                 <i className="inline-block h-2 w-2 rounded-full" style={{ background: TYPE[c.type].color }} />
                 {TYPE[c.type].label}
               </span>
@@ -186,7 +186,7 @@ export default function ChangesTab({ changes, busy, onDecide, onAcceptSafe, onEv
             <Body c={c} />
             {(c.timestamp || c.quote) && (
               <div className="mt-3 text-[13px] text-muted">
-                {c.quote && <span className="serif text-[16px]">“{c.quote}” </span>}
+                {c.quote && <span className="text-[15px] text-ink2">“{c.quote}” </span>}
                 <Button type="link" size="small" className="px-1" onClick={() => onEvidence(c)}>
                   {c.timestamp ? `[${c.timestamp}] see transcript` : 'see transcript'}
                 </Button>

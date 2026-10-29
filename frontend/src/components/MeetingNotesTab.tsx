@@ -31,14 +31,14 @@ export default function MeetingNotesTab({ reg, readOnly, onChange, onEvidence }:
 
   return (
     <div>
-      <p className="serif m-0 mb-5 text-[20px] leading-snug text-muted">
+      <p className="m-0 mb-6 text-center text-[19px] leading-snug text-ink2">
         What was asked and who owns it. These go in the separate “Meeting notes &amp; action tracker” Word file, not in the requirement
         specification.
       </p>
 
       <Section title={latest ? `Summary of the latest meeting · ${names[latest.id]}` : 'Meeting summary'}>
         {readOnly ? (
-          <p className="serif m-0 whitespace-pre-wrap text-[22px] leading-snug">
+          <p className="m-0 whitespace-pre-wrap text-[19px] leading-[1.45]">
             {reg.summary || <span className="text-muted">No summary yet</span>}
           </p>
         ) : (
@@ -46,7 +46,7 @@ export default function MeetingNotesTab({ reg, readOnly, onChange, onEvidence }:
             aria-label="Meeting summary"
             autoSize={{ minRows: 2, maxRows: 8 }}
             value={reg.summary}
-            style={{ fontFamily: 'var(--serif)', fontStyle: 'italic', fontSize: 20, lineHeight: 1.35 }}
+            style={{ fontSize: 17, lineHeight: 1.45 }}
             onChange={(e) => set('summary', e.target.value)}
           />
         )}
@@ -57,7 +57,7 @@ export default function MeetingNotesTab({ reg, readOnly, onChange, onEvidence }:
           rows={reg.actions}
           readOnly={readOnly}
           addLabel="Add action"
-          minWidth={960}
+          minWidth={1080}
           statuses={['Open', 'Done', 'Withdrawn']}
           blank={() => ({
             ...base('Open'),
@@ -71,7 +71,7 @@ export default function MeetingNotesTab({ reg, readOnly, onChange, onEvidence }:
             updates: [],
           })}
           cols={[
-            { key: 'task', title: 'Task', area: true },
+            { key: 'task', title: 'Task', area: true, width: 250 },
             { key: 'owner', title: 'Owner', width: 110 },
             {
               key: 'raised_date',

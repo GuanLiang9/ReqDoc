@@ -45,18 +45,18 @@ export default function EvidenceDrawer({ code, evidence, onClose }: { code: stri
 
   return (
     <Drawer
-      title={<span className="eyebrow">Where this came from</span>}
+      title={<span className="text-[17px] font-semibold">Where this came from</span>}
       width={520}
       open={!!evidence}
       onClose={onClose}
       destroyOnClose
-      styles={{ body: { background: '#FCFBF7' } }}
+      styles={{ body: { background: '#FFFFFF' } }}
     >
       {evidence && (
         <div data-testid="evidence">
           <p className="m-0 text-[15px] font-semibold leading-snug">{evidence.label}</p>
           {evidence.quote && (
-            <blockquote className="serif m-0 mb-6 mt-4 border-l-[3px] border-accent pl-4 text-[22px] leading-snug">
+            <blockquote className="m-0 mb-6 mt-4 text-[24px] font-semibold leading-snug tracking-[-0.015em]">
               “{evidence.quote}”
             </blockquote>
           )}
@@ -70,7 +70,7 @@ export default function EvidenceDrawer({ code, evidence, onClose }: { code: stri
                   key={i}
                   ref={active ? hit : undefined}
                   data-hit={active ? 'true' : undefined}
-                  className={`rounded-md px-2 ${active ? 'bg-sand font-medium' : ''}`}
+                  className={`rounded-lg px-2 ${active ? 'bg-blue-tint font-medium' : ''}`}
                 >
                   {l.timestamp && <span className="tnum mr-2 text-[12px] text-muted">[{l.timestamp}]</span>}
                   {l.speaker && <b className="mr-1">{l.speaker}:</b>}

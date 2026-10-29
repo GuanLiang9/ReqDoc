@@ -1,5 +1,5 @@
 import { Button, Popconfirm, Space, Tooltip } from 'antd';
-import { CheckOutlined, DeleteOutlined, SaveOutlined } from '@ant-design/icons';
+import { InfoCircleFilled } from '@ant-design/icons';
 
 interface Props {
   pending: number;
@@ -13,7 +13,7 @@ interface Props {
   onApprove: () => void;
 }
 
-/** The status and actions for the open draft. One calm card instead of loud alerts. */
+/** The status and actions for the open draft: one calm tile, the primary action is the blue pill. */
 export default function DraftBar({ pending, isFirstDraft, dirty, busy, onReviewChanges, onDiscard, onUndo, onSave, onApprove }: Props) {
   const message =
     pending > 0
@@ -23,12 +23,13 @@ export default function DraftBar({ pending, isFirstDraft, dirty, busy, onReviewC
         : 'Every change is decided. Review the document, then approve to create the next version.';
 
   return (
-    <section data-testid="draft-bar" className="rule-left mb-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-line bg-white px-6 py-4">
-      <div className="min-w-[260px] flex-1">
-        <div className="eyebrow" style={{ color: '#8F5A1E' }}>
-          {isFirstDraft ? 'Draft · AI-generated' : 'Draft · follow-up meeting'}
+    <section data-testid="draft-bar" className="tile mb-6 flex flex-wrap items-center justify-between gap-4 px-6 py-5">
+      <div className="flex min-w-[260px] flex-1 items-start gap-3">
+        <InfoCircleFilled className="mt-[3px] text-[20px] text-blue" aria-hidden />
+        <div>
+          <div className="text-[17px] font-semibold tracking-[-0.01em]">{isFirstDraft ? 'Draft · AI-generated' : 'Draft · follow-up meeting'}</div>
+          <div className="mt-0.5 text-[15px] leading-6 text-ink2">{message}</div>
         </div>
-        <div className="mt-1 text-[15px] leading-6">{message}</div>
       </div>
       <Space wrap size={8}>
         {pending > 0 && <Button size="small" onClick={onReviewChanges}>Review changes</Button>}
@@ -39,14 +40,14 @@ export default function DraftBar({ pending, isFirstDraft, dirty, busy, onReviewC
           okButtonProps={{ danger: true }}
           onConfirm={onDiscard}
         >
-          <Button size="small" type="text" danger icon={<DeleteOutlined />}>Discard</Button>
+          <Button size="small" type="text" danger>Discard</Button>
         </Popconfirm>
         {dirty && <Button size="small" onClick={onUndo}>Undo my edits</Button>}
-        <Button size="small" type={dirty ? 'primary' : 'default'} icon={<SaveOutlined />} disabled={!dirty} loading={busy && dirty} onClick={onSave}>
+        <Button size="small" type={dirty ? 'primary' : 'default'} disabled={!dirty} loading={busy && dirty} onClick={onSave}>
           {dirty ? 'Save edits' : 'Saved'}
         </Button>
         <Tooltip title={pending > 0 ? 'Decide every change first' : ''}>
-          <Button size="small" type="primary" icon={<CheckOutlined />} disabled={pending > 0} onClick={onApprove}>
+          <Button size="small" type="primary" disabled={pending > 0} onClick={onApprove}>
             Approve
           </Button>
         </Tooltip>

@@ -180,7 +180,7 @@ export default function ItemTable<T extends Tracked>({
         locale={{ emptyText: <span className="text-muted">Not discussed in this meeting</span> }}
       />
       {!readOnly && (
-        <Button type="dashed" size="small" icon={<PlusOutlined />} className="mt-2" onClick={() => onChange([...rows, blank()])}>
+        <Button type="text" size="small" icon={<PlusOutlined />} className="mt-2 !text-blue" onClick={() => onChange([...rows, blank()])}>
           {addLabel}
         </Button>
       )}

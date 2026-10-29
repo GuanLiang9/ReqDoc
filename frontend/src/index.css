@@ -3,104 +3,196 @@
 @tailwind utilities;
 
 :root {
-  --paper: #f2efe6;
-  --ink: #231f20;
-  --accent: #c38133;
-  --accent-deep: #8f5a1e;
-  --muted: #6b6660;
-  --line: #ddd9ce;
-  --line-soft: #ece8dc;
-  --serif: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+  --canvas: #f5f5f7;
+  --ink: #1d1d1f;
+  --ink2: #6e6e73;
+  --grey: #86868b;
+  --hair: #d2d2d7;
+  --hair-soft: #e8e8ed;
+  --blue: #0071e3;
+  --blue-link: #0066cc;
+  --blue-tint: #e8f2fd;
+  --font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'Inter', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
 html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  scroll-behavior: smooth;
 }
 
 body {
   margin: 0;
-  background: var(--paper);
+  background: var(--canvas);
   color: var(--ink);
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: var(--font);
+  letter-spacing: -0.003em;
   overflow-x: hidden;
 }
 
 ::selection {
-  background: rgba(195, 129, 51, 0.28);
+  background: rgba(0, 113, 227, 0.22);
 }
 
-/* ---------- editorial type ---------- */
-.eyebrow {
-  font-size: 11px;
+@layer components {
+/* ---------- type ---------- */
+.hero-title {
+  margin: 0;
+  font-size: clamp(40px, 8vw, 80px);
   font-weight: 600;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-.display {
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  line-height: 1.05;
+  letter-spacing: -0.025em;
+  line-height: 1.04;
   color: var(--ink);
 }
-.serif {
-  font-family: var(--serif);
-  font-style: italic;
-  font-weight: 400;
+.headline {
+  margin: 0;
+  font-size: clamp(30px, 5vw, 48px);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.08;
+  color: var(--ink);
 }
-.hairline {
-  border: 0;
-  border-top: 1px solid var(--line);
+.subhead {
+  margin: 0;
+  font-size: clamp(17px, 2.2vw, 24px);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 1.35;
+  color: var(--ink2);
+}
+.caption {
+  font-size: 12px;
+  color: var(--grey);
 }
 .tnum {
   font-variant-numeric: tabular-nums;
 }
+/* older class names from the previous design, kept as quiet aliases so every screen stays readable */
+.eyebrow {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink2);
+}
+.display {
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.08;
+  color: var(--ink);
+}
+.serif {
+  font-family: inherit;
+  font-style: normal;
+  font-weight: 400;
+}
+.hairline {
+  border: 0;
+  border-top: 1px solid var(--hair-soft);
+}
 
-/* ---------- buttons: bordered, uppercase, letter-spaced ---------- */
-.ant-btn:not(.ant-btn-link):not(.ant-btn-text):not(.ant-btn-sm) > span:not(.anticon),
-.ant-btn:not(.ant-btn-link):not(.ant-btn-text) > span:not(.anticon) {
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  font-size: 11px;
+/* ---------- apple.com building blocks ---------- */
+.glass {
+  background: rgba(255, 255, 255, 0.72);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(180%) blur(20px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+.tile {
+  background: #fff;
+  border-radius: 24px;
+}
+.tile-link {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+.tile-link:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.1);
+  color: inherit;
+}
+.link-more {
+  color: var(--blue-link);
+  font-size: 17px;
+  text-decoration: none;
+  cursor: pointer;
+  background: none;
+  border: 0;
+  padding: 0;
+  font-family: inherit;
+}
+.link-more::after {
+  content: ' \203A';
+}
+.link-more:hover {
+  text-decoration: underline;
+  color: var(--blue-link);
+}
+.fade-up {
+  animation: fade-up 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fade-up {
+    animation: none;
+  }
+  .tile-link,
+  html {
+    transition: none;
+    scroll-behavior: auto;
+  }
+}
+
+}
+
+/* ---------- buttons: pills ---------- */
+.ant-btn {
+  letter-spacing: -0.005em;
 }
 .ant-btn-sm {
-  font-size: 11px;
+  font-size: 13px;
 }
-.ant-btn-sm:not(.ant-btn-link):not(.ant-btn-text) {
-  padding-inline: 14px;
+.ant-btn-lg {
+  font-size: 17px;
+  height: 48px;
+  padding-inline: 28px;
 }
-.ant-btn-link {
-  font-weight: 500;
-}
-.ant-btn-primary {
-  letter-spacing: 0.1em;
-}
-.ant-btn-primary:hover {
-  background: var(--accent-deep) !important;
-  border-color: var(--accent-deep) !important;
+.ant-btn-link,
+.ant-btn-text {
+  box-shadow: none;
 }
 .ant-btn-primary:disabled,
-.ant-btn-primary.ant-btn-disabled {
-  background: #d8d3c6 !important;
-  border-color: #d8d3c6 !important;
-  color: #8a857b !important;
+.ant-btn-primary.ant-btn-disabled,
+.ant-btn-default:disabled,
+.ant-btn-default.ant-btn-disabled {
+  background: var(--hair-soft) !important;
+  border-color: transparent !important;
+  color: #a1a1a6 !important;
 }
 
-/* ---------- status chips (replace Ant Design preset tag colours) ---------- */
+@layer components {
+/* ---------- status capsules ---------- */
 .chip {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 3px 10px;
+  padding: 3px 11px;
   border-radius: 999px;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
+  font-size: 12px;
+  font-weight: 500;
   line-height: 18px;
   white-space: nowrap;
-  background: #ece8de;
-  color: #4b4640;
+  background: #ededf0;
+  color: #515154;
 }
 .chip-dot::before {
   content: '';
@@ -110,113 +202,137 @@ body {
   background: currentColor;
 }
 .chip-approved {
-  background: #e7eee3;
-  color: #2f5d3a;
+  background: #e8f5ec;
+  color: #1d7a34;
 }
 .chip-draft {
-  background: #f6eadb;
-  color: #7a4a12;
+  background: #fff1e6;
+  color: #b64400;
 }
 .chip-info {
-  background: #e4e9ee;
-  color: #2c4a63;
+  background: #e8f2fd;
+  color: #0058b0;
 }
 .chip-warn {
-  background: transparent;
-  color: #7a4a12;
-  box-shadow: inset 0 0 0 1px #c38133;
+  background: #fff1e6;
+  color: #b64400;
 }
 .chip-muted {
-  background: #ece8de;
-  color: #6b6660;
+  background: #ededf0;
+  color: #6e6e73;
 }
 .chip-danger {
-  background: #f6e4e1;
-  color: #8a2f25;
+  background: #fdecec;
+  color: #c4161c;
 }
 button.chip {
   border: 0;
   cursor: pointer;
   font-family: inherit;
 }
-button.chip-warn {
-  box-shadow: inset 0 0 0 1px #c38133;
-}
 button.chip:hover {
-  background: #f6eadb;
+  filter: brightness(0.95);
+}
+
 }
 
 /* ---------- cards ---------- */
 .ant-card {
   box-shadow: none;
 }
-.ant-card .ant-card-head {
-  min-height: 0;
-  padding-inline: 20px;
-  border-bottom: 1px solid var(--line-soft);
-}
-.ant-card .ant-card-head-title {
-  padding-block: 14px;
-}
-.ant-card-small > .ant-card-body {
-  padding: 16px 20px;
-}
-.rule-left {
-  border-left: 3px solid var(--accent);
-}
 
 /* ---------- tables ---------- */
 .ant-table-thead > tr > th {
-  font-size: 11px !important;
-  font-weight: 600 !important;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  border-bottom: 1px solid var(--line) !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  border-bottom: 1px solid var(--hair-soft) !important;
 }
 .ant-table-wrapper .ant-table-thead > tr > th::before {
   display: none !important;
 }
 .ant-table-cell .ant-input-borderless:hover,
 .ant-table-cell .ant-input-borderless:focus,
-.ant-table-cell .ant-input-borderless:focus-within {
-  background: #f8f3e8;
-}
-.row-clickable .ant-table-row {
-  cursor: pointer;
-}
-.row-clickable .ant-table-row:hover .row-arrow {
-  transform: translateX(4px);
-  color: var(--accent-deep);
-}
-.row-arrow {
-  transition: transform 0.15s ease, color 0.15s ease;
-  color: var(--grey, #999);
+.ant-table-cell .ant-input-borderless:focus-within,
+.ant-table-cell .ant-select-borderless:hover .ant-select-selector {
+  background: #f5f5f7;
 }
 
-/* ---------- tabs ---------- */
-.ant-tabs-tab-btn {
+/* ---------- tabs: a centred segmented pill bar ---------- */
+.ant-tabs-top > .ant-tabs-nav::before {
+  display: none;
+}
+.ant-tabs > .ant-tabs-nav {
+  justify-content: center;
+}
+.ant-tabs > .ant-tabs-nav .ant-tabs-nav-wrap {
+  flex: 0 1 auto;
+}
+.ant-tabs > .ant-tabs-nav .ant-tabs-nav-list {
+  background: var(--hair-soft);
+  border-radius: 999px;
+  padding: 4px;
+}
+.ant-tabs .ant-tabs-tab {
+  margin: 0 !important;
+  padding: 8px 18px;
+  border-radius: 999px;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+.ant-tabs .ant-tabs-tab-btn {
+  font-weight: 500;
+}
+.ant-tabs .ant-tabs-tab.ant-tabs-tab-active {
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+}
+.ant-tabs .ant-tabs-tab.ant-tabs-tab-active .ant-tabs-tab-btn {
   font-weight: 600;
-  letter-spacing: 0.02em;
+}
+.ant-tabs .ant-tabs-ink-bar {
+  display: none;
+}
+.ant-tabs .ant-tabs-nav-operations {
+  display: none !important;
 }
 
 /* ---------- modals / drawers ---------- */
+.ant-modal-mask {
+  background: rgba(0, 0, 0, 0.32) !important;
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+.ant-modal .ant-modal-content {
+  padding: 32px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.25);
+}
 .ant-modal .ant-modal-header {
-  margin-bottom: 8px;
+  margin-bottom: 12px;
+}
+.ant-modal .ant-modal-footer {
+  margin-top: 24px;
 }
 .ant-upload-wrapper .ant-upload-drag {
-  background: #faf8f2;
-  border: 1.5px dashed var(--line);
+  background: #fbfbfd;
+  border: 1.5px dashed var(--hair);
+  border-radius: 20px;
 }
 .ant-upload-wrapper .ant-upload-drag:not(.ant-upload-disabled):hover {
-  border-color: var(--accent);
+  border-color: var(--blue);
+  background: var(--blue-tint);
 }
 .ant-upload-wrapper .ant-upload-drag .ant-upload-drag-icon .anticon {
-  color: var(--ink);
+  color: var(--blue);
+}
+
+/* the chosen file's name sits under the drop zone: keep it clear of the next field */
+.ant-upload-wrapper .ant-upload-list {
+  margin-top: 8px;
+  margin-bottom: 20px;
 }
 
 /* ---------- focus ---------- */
 :focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--blue);
   outline-offset: 2px;
 }
 
@@ -232,5 +348,14 @@ button.chip:hover {
 @media (max-width: 640px) {
   .ant-modal {
     max-width: calc(100vw - 24px);
+  }
+  .ant-modal .ant-modal-content {
+    padding: 24px 20px;
+  }
+  .ant-tabs > .ant-tabs-nav {
+    justify-content: flex-start;
+  }
+  .ant-tabs > .ant-tabs-nav .ant-tabs-nav-wrap {
+    flex: 1 1 auto;
   }
 }

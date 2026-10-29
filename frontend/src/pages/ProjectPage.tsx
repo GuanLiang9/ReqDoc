@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { Alert, App, Badge, Button, Dropdown, Skeleton, Space, Tabs, Tooltip } from 'antd';
-import { DownOutlined, DownloadOutlined, UploadOutlined } from '@ant-design/icons';
+import { DownOutlined, UploadOutlined } from '@ant-design/icons';
 import { api } from '../api';
 import type { Change, ProjectDetail, Register, Tracked } from '../types';
 import ApproveModal from '../components/ApproveModal';
@@ -269,87 +269,99 @@ export default function ProjectPage() {
     { key: 'history', label: 'Versions and meetings', children: <HistoryTab detail={detail} changeLog={draft?.change_log ?? []} /> },
   ];
 
+  const exportButton = exportItems.length > 0 && (
+    <Dropdown
+      menu={{
+        items: exportItems,
+        onClick: ({ key }) => {
+          const [doc, version] = key.split(':');
+          download(version, doc as 'spec' | 'notes');
+        },
+      }}
+      trigger={['click']}
+    >
+      <Button aria-label="Export Word documents">
+        Export <DownOutlined className="text-[11px]" />
+      </Button>
+    </Dropdown>
+  );
+  const uploadButton = (
+    <Tooltip title={uploadBlockedReason}>
+      <Button type="primary" icon={<UploadOutlined />} aria-label="Upload meeting" disabled={!!uploadBlockedReason} onClick={() => setUploadOpen(true)}>
+        <span className="hidden sm:inline">Upload meeting</span>
+      </Button>
+    </Tooltip>
+  );
+
   return (
     <div>
-      <div className="eyebrow mb-4">
-        <Link to="/" className="text-muted hover:text-ink">Projects</Link> <span className="mx-1">/</span> {detail.project.code}
+      {/* local nav, like the sticky sub-navigation on apple.com product pages */}
+      <div className="glass sticky top-12 z-40">
+        <div className="mx-auto flex h-[56px] w-full max-w-[1080px] items-center justify-between gap-3 px-5 sm:px-8">
+          <div className="flex min-w-0 items-center gap-2">
+            <Link to="/" className="hidden text-[13px] text-ink2 hover:text-ink sm:inline">
+              Projects
+            </Link>
+            <span className="hidden text-[13px] text-grey sm:inline" aria-hidden>
+              ›
+            </span>
+            <span className="truncate text-[17px] font-semibold tracking-[-0.01em]" data-testid="local-nav-title">
+              {detail.project.name}
+            </span>
+          </div>
+          <Space size={8} className="shrink-0">
+            {exportButton}
+            {uploadButton}
+          </Space>
+        </div>
       </div>
-      <div className="mb-8 flex flex-wrap items-end justify-between gap-6">
-        <div className="min-w-0">
-          <h1 className="display m-0 break-words text-[36px] sm:text-[48px]">{detail.project.name}</h1>
-          <div className="mt-4 flex flex-wrap items-center gap-2">
-            <span className="mr-1 text-[13px] font-semibold tracking-[0.08em]">{detail.project.code}</span>
+
+      <section className="bg-white px-5 pb-12 pt-12 text-center sm:pt-16">
+        <div className="fade-up mx-auto max-w-[900px]">
+          <p className="m-0 text-[13px] font-semibold tracking-[0.04em] text-grey">{detail.project.code}</p>
+          <h1 className="headline mt-2 break-words">{detail.project.name}</h1>
+          <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
             {hasMaster ? <Chip tone="approved" dot>v{detail.master_version} approved</Chip> : <Chip tone="muted">Not approved yet</Chip>}
             {detail.has_draft && <Chip tone="draft" dot>Draft to review</Chip>}
-            {detail.project.owner && <span className="ml-1 text-[13px] text-muted">Owner: {detail.project.owner}</span>}
+            {detail.project.owner && <span className="ml-1 text-[14px] text-ink2">Owner: {detail.project.owner}</span>}
           </div>
         </div>
-        <Space wrap size={10}>
-          <Tooltip title={uploadBlockedReason}>
-            <Button type="primary" size="large" icon={<UploadOutlined />} disabled={!!uploadBlockedReason} onClick={() => setUploadOpen(true)}>
-              Upload meeting
+      </section>
+
+      <div className="mx-auto w-full max-w-[1080px] px-5 pb-20 pt-8 sm:px-8">
+        {error && <Alert type="warning" showIcon className="mb-6" message={error} />}
+        {job && <JobBanner job={job} hasMaster={hasMaster} onDismiss={() => setDismissedJob(job.id)} />}
+
+        {draft && (
+          <DraftBar
+            pending={pending}
+            isFirstDraft={isFirstDraft}
+            dirty={dirty}
+            busy={busy}
+            onReviewChanges={() => setTab('changes')}
+            onDiscard={discard}
+            onUndo={() => loadAll(true)}
+            onSave={() => save().then((ok) => ok && message.success('Saved'))}
+            onApprove={() => setApproveOpen(true)}
+          />
+        )}
+
+        {!reg && !active ? (
+          <div className="tile px-6 py-20 text-center sm:px-12">
+            <h2 className="headline text-[32px]">{job?.stage === 'error' ? 'The last upload did not work.' : 'No meeting yet.'}</h2>
+            <p className="subhead mx-auto mb-8 mt-3 max-w-lg">
+              {job?.stage === 'error'
+                ? 'Read the message above, fix the problem and try again.'
+                : 'Upload a recording or a Teams transcript and the requirement document is written for you to review.'}
+            </p>
+            <Button type="primary" size="large" icon={<UploadOutlined />} onClick={() => setUploadOpen(true)}>
+              Upload the first meeting
             </Button>
-          </Tooltip>
-          {exportItems.length > 0 && (
-            <Space.Compact size="large">
-              <Button icon={<DownloadOutlined />} onClick={() => download(detail.has_draft ? 'draft' : 'latest')}>
-                Export Word
-              </Button>
-              <Dropdown
-                menu={{
-                  items: exportItems,
-                  onClick: ({ key }) => {
-                    const [doc, version] = key.split(':');
-                    download(version, doc as 'spec' | 'notes');
-                  },
-                }}
-                trigger={['click']}
-              >
-                <Button icon={<DownOutlined />} aria-label="Choose what to export" />
-              </Dropdown>
-            </Space.Compact>
-          )}
-        </Space>
-      </div>
-
-      {error && <Alert type="warning" showIcon className="mb-6" message={error} />}
-      {job && <JobBanner job={job} hasMaster={hasMaster} onDismiss={() => setDismissedJob(job.id)} />}
-
-      {draft && (
-        <DraftBar
-          pending={pending}
-          isFirstDraft={isFirstDraft}
-          dirty={dirty}
-          busy={busy}
-          onReviewChanges={() => setTab('changes')}
-          onDiscard={discard}
-          onUndo={() => loadAll(true)}
-          onSave={() => save().then((ok) => ok && message.success('Saved'))}
-          onApprove={() => setApproveOpen(true)}
-        />
-      )}
-
-      {!reg && !active ? (
-        <div className="rounded-2xl border border-line bg-white px-6 py-16 text-center sm:px-12">
-          <p className="serif m-0 text-[28px] leading-tight">
-            {job?.stage === 'error' ? 'The last upload did not work.' : 'No meeting yet.'}
-          </p>
-          <p className="mx-auto mb-8 mt-2 max-w-md text-muted">
-            {job?.stage === 'error'
-              ? 'Read the message above, fix the problem and try again.'
-              : 'Upload a recording or a Teams transcript and the requirement document is written for you to review.'}
-          </p>
-          <Button type="primary" size="large" icon={<UploadOutlined />} onClick={() => setUploadOpen(true)}>
-            Upload the first meeting
-          </Button>
-        </div>
-      ) : (
-        reg && (
-          <div className="rounded-2xl border border-line bg-white px-5 pb-8 pt-3 sm:px-8">
-            <Tabs activeKey={tabs.some((t) => t.key === tab) ? tab : 'requirements'} onChange={setTab} items={tabs} />
           </div>
-        )
-      )}
+        ) : (
+          reg && <Tabs activeKey={tabs.some((t) => t.key === tab) ? tab : 'requirements'} onChange={setTab} items={tabs} />
+        )}
+      </div>
 
       <UploadModal
         open={uploadOpen}

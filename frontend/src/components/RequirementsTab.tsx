@@ -29,7 +29,7 @@ export default function RequirementsTab({ reg, readOnly, onChange, onEvidence }:
 
   return (
     <div>
-      <p className="serif m-0 mb-5 text-[20px] leading-snug text-muted">
+      <p className="m-0 mb-6 text-center text-[19px] leading-snug text-ink2">
         What is to be built and how. Meeting summaries, action items and open questions are on the “Meeting notes and actions” tab.
       </p>
 
@@ -149,7 +149,7 @@ export default function RequirementsTab({ reg, readOnly, onChange, onEvidence }:
           ]}
         />
         {!readOnly && (
-          <Button type="dashed" size="small" icon={<PlusOutlined />} className="mt-2" onClick={() => set('glossary', [...reg.glossary, { term: '', meaning: '' }])}>
+          <Button type="text" size="small" icon={<PlusOutlined />} className="mt-2 !text-blue" onClick={() => set('glossary', [...reg.glossary, { term: '', meaning: '' }])}>
             Add term
           </Button>
         )}

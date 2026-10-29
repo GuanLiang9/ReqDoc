@@ -51,7 +51,7 @@ export default function StringList({ items, onChange, readOnly, placeholder, ord
         </div>
       ))}
       <div>
-        <Button type="dashed" size="small" icon={<PlusOutlined />} onClick={() => onChange([...items, ''])}>
+        <Button type="text" size="small" icon={<PlusOutlined />} className="!text-blue" onClick={() => onChange([...items, ''])}>
           Add
         </Button>
       </div>
