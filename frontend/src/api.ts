@@ -73,19 +73,11 @@ export const api = {
     `/api/projects/${enc(code)}/export.docx?version=${enc(version)}&doc=${doc}`,
 };
 
-/** Upload a recording or transcript. XMLHttpRequest (not fetch) so large files show progress. */
-export function uploadMeeting(
-  code: string,
-  form: { file: File; title: string; date: string },
-  onProgress: (fraction: number) => void,
-): Promise<{ job_id: string }> {
+/** POST a form with upload progress. XMLHttpRequest (not fetch) so large files show progress. */
+function postForm(path: string, body: FormData, onProgress: (fraction: number) => void): Promise<{ job_id: string }> {
   return new Promise((resolve, reject) => {
-    const body = new FormData();
-    body.append('file', form.file);
-    body.append('title', form.title);
-    body.append('date', form.date);
     const xhr = new XMLHttpRequest();
-    xhr.open('POST', `/api/projects/${enc(code)}/meetings`);
+    xhr.open('POST', `/api${path}`);
     xhr.upload.onprogress = (e) => e.lengthComputable && onProgress(e.loaded / e.total);
     xhr.onerror = () => reject(new ApiError('Upload failed. Is the ReqDoc server running?'));
     xhr.onload = () => {
@@ -100,4 +92,30 @@ export function uploadMeeting(
     };
     xhr.send(body);
   });
+}
+
+/** Upload a recording or transcript. */
+export function uploadMeeting(
+  code: string,
+  form: { file: File; title: string; date: string },
+  onProgress: (fraction: number) => void,
+): Promise<{ job_id: string }> {
+  const body = new FormData();
+  body.append('file', form.file);
+  body.append('title', form.title);
+  body.append('date', form.date);
+  return postForm(`/projects/${enc(code)}/meetings`, body, onProgress);
+}
+
+/** Upload a pack of supporting documents (Word, PowerPoint, PDF, Excel), read together as one source. */
+export function uploadDocuments(
+  code: string,
+  form: { files: File[]; title: string; date: string },
+  onProgress: (fraction: number) => void,
+): Promise<{ job_id: string }> {
+  const body = new FormData();
+  form.files.forEach((f) => body.append('files', f));
+  body.append('title', form.title);
+  body.append('date', form.date);
+  return postForm(`/projects/${enc(code)}/documents`, body, onProgress);
 }

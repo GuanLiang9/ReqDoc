@@ -17,7 +17,7 @@ interface Props {
 export default function DraftBar({ pending, isFirstDraft, dirty, busy, onReviewChanges, onDiscard, onUndo, onSave, onApprove }: Props) {
   const message =
     pending > 0
-      ? `${pending} change${pending > 1 ? 's' : ''} from the latest meeting need${pending > 1 ? '' : 's'} your decision.`
+      ? `${pending} change${pending > 1 ? 's' : ''} from the latest upload need${pending > 1 ? '' : 's'} your decision.`
       : isFirstDraft
         ? 'This is an AI-generated draft. Check it against the transcript, fix anything wrong, then approve.'
         : 'Every change is decided. Review the document, then approve to create the next version.';
@@ -27,7 +27,7 @@ export default function DraftBar({ pending, isFirstDraft, dirty, busy, onReviewC
       <div className="flex min-w-[260px] flex-1 items-start gap-3">
         <InfoCircleFilled className="mt-[3px] text-[20px] text-blue" aria-hidden />
         <div>
-          <div className="text-[17px] font-semibold tracking-[-0.01em]">{isFirstDraft ? 'Draft · AI-generated' : 'Draft · follow-up meeting'}</div>
+          <div className="text-[17px] font-semibold tracking-[-0.01em]">{isFirstDraft ? 'Draft · AI-generated' : 'Draft · follow-up'}</div>
           <div className="mt-0.5 text-[15px] leading-6 text-ink2">{message}</div>
         </div>
       </div>

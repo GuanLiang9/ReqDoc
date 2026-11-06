@@ -98,6 +98,21 @@ def parse_lines(lines: list[str]) -> list[Segment]:
     return segments
 
 
+_LOCATED = re.compile(r"^\[(?P<loc>[^\]]{1,80})\]\s*(?P<text>.*)$")
+
+
+def parse_located_lines(lines: list[str]) -> list[Segment]:
+    """Saved document text: '[RFP · p.3] text' -> Segment(timestamp='RFP · p.3')."""
+    segments = []
+    for line in lines:
+        m = _LOCATED.match(line.strip())
+        if m and m.group("text").strip():
+            segments.append(Segment(timestamp=m.group("loc").strip(), text=m.group("text").strip()))
+        elif line.strip():
+            segments.append(Segment(text=line.strip()))
+    return segments
+
+
 _HEAD_A = re.compile(r"^(?P<sp>.+?)\s+(?P<ts>\d{1,2}:\d{2}(?::\d{2})?)$")  # 'Alice Tan  0:12'
 _HEAD_B = re.compile(r"^(?P<ts>\d{1,2}:\d{2}(?::\d{2})?)\s+(?P<sp>.+)$")  # '0:12  Alice Tan'
 

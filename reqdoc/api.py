@@ -12,7 +12,8 @@ from .changes import apply_change, item_text, next_id, prefix_for
 from .dates import resolve_due, today_sgt
 from .jobs import runner
 from .models import ITEM_CATEGORIES, LIST_CATEGORIES, Register
-from .parsers import parse_lines
+from .documents import DOC_EXTENSIONS, MAX_FILE_BYTES, MAX_FILES, check_filename
+from .parsers import parse_located_lines, parse_lines
 from .transcribe import AUDIO_EXTENSIONS
 
 app = FastAPI(title="ReqDoc AI")
@@ -99,6 +100,7 @@ def get_project(code: str):
         "meetings": storage.list_meetings(code),
         "job": job.public() if job else None,
         "accepted_files": sorted(AUDIO_EXTENSIONS | TRANSCRIPT_EXTENSIONS),
+        "accepted_documents": sorted(DOC_EXTENSIONS),
     }
 
 
@@ -116,6 +118,29 @@ def upload_meeting(code: str, file: UploadFile = File(...), title: str = Form(..
     if not title or len(title) > 120:
         raise HTTPException(400, "Meeting title is required (max 120 characters)")
     job = runner.submit(code, title, date, file.filename or "upload", file.file)
+    return {"job_id": job.id}
+
+
+@app.post("/api/projects/{code}/documents", status_code=202)
+def upload_documents(code: str, files: list[UploadFile] = File(...), title: str = Form(...), date: str = Form(...)):
+    """A pack of supporting documents (Word, PowerPoint, PDF, Excel, text), read together as one source."""
+    if not files:
+        raise HTTPException(400, "Choose at least one document")
+    if len(files) > MAX_FILES:
+        raise HTTPException(400, f"Up to {MAX_FILES} documents per upload. Upload the rest separately.")
+    for f in files:
+        try:
+            check_filename(f.filename or "")
+        except ValueError as e:
+            raise HTTPException(400, str(e)) from e
+        if f.size is not None and f.size > MAX_FILE_BYTES:
+            raise HTTPException(400, f"{f.filename} is larger than {MAX_FILE_BYTES // (1024 * 1024)} MB.")
+    if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", date):
+        raise HTTPException(400, "Date must look like 2026-10-22")
+    title = title.strip()
+    if not title or len(title) > 120:
+        raise HTTPException(400, "A title for these documents is required (max 120 characters)")
+    job = runner.submit_documents(code, title, date, [(f.filename or "document", f.file) for f in files])
     return {"job_id": job.id}
 
 
@@ -265,7 +290,9 @@ def get_transcript(code: str, meeting_id: str):
     text = storage.load_transcript(code, meeting_id)
     if text is None:
         raise HTTPException(404, "Transcript not found")
-    return [{"timestamp": s.timestamp, "speaker": s.speaker, "text": s.text} for s in parse_lines(text.splitlines())]
+    is_document = any(m["id"] == meeting_id and m.get("kind") == "document" for m in storage.list_meetings(code))
+    parse = parse_located_lines if is_document else parse_lines
+    return [{"timestamp": s.timestamp, "speaker": s.speaker, "text": s.text} for s in parse(text.splitlines())]
 
 
 @app.get("/api/projects/{code}/export.docx")

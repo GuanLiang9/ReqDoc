@@ -70,14 +70,17 @@ PASSES = [
 
 
 def extract(segments: list[Segment], llm: LLMClient, glossary: str = "",
-            chunk_tokens: int | None = None, progress: Progress | None = None) -> Extraction:
-    common = _prompt("extract_common").replace("{glossary}", glossary or "(none)")
+            chunk_tokens: int | None = None, progress: Progress | None = None, source: str = "meeting") -> Extraction:
+    """source: "meeting" (transcript lines with [HH:MM:SS]) or "document" (lines with [file · p.3] locations)."""
+    common = _prompt("extract_common_document" if source == "document" else "extract_common")
+    common = common.replace("{glossary}", glossary or "(none)")
+    part = "DOCUMENT TEXT" if source == "document" else "TRANSCRIPT"
     chunks = chunk_segments(segments, chunk_tokens or config.CHUNK_TOKENS)
     total_calls = len(chunks) * len(PASSES)
     results = []
     for i, chunk in enumerate(chunks, 1):
         text = "\n".join(format_segment(s) for s in chunk)
-        user = f"TRANSCRIPT PART {i} OF {len(chunks)}\n\n{text}"
+        user = f"{part} PART {i} OF {len(chunks)}\n\n{text}"
         for j, (name, schema, label) in enumerate(PASSES):
             if progress:
                 done = (i - 1) * len(PASSES) + j
@@ -164,7 +167,7 @@ def _verify(item, index: TranscriptIndex) -> None:
 # --- register ------------------------------------------------------------------
 
 def build_register(ext: Extraction, segments: list[Segment], project_code: str, project_name: str,
-                   meeting_title: str, meeting_date: str, summary: str = "") -> Register:
+                   meeting_title: str, meeting_date: str, summary: str = "", kind: str = "meeting") -> Register:
     index = TranscriptIndex(segments)
     meeting_id = f"{meeting_date}_{project_code}"
     attendees = sorted({s.speaker for s in segments if s.speaker})
@@ -191,7 +194,7 @@ def build_register(ext: Extraction, segments: list[Segment], project_code: str, 
     return Register(
         project_code=project_code,
         project_name=project_name,
-        meetings=[MeetingInfo(id=meeting_id, title=meeting_title, date=meeting_date, attendees=attendees)],
+        meetings=[MeetingInfo(id=meeting_id, title=meeting_title, date=meeting_date, attendees=attendees, kind=kind)],
         summary=summary,
         objectives=ext.objectives,
         scope_in=ext.scope_in,
@@ -213,20 +216,22 @@ def build_register(ext: Extraction, segments: list[Segment], project_code: str, 
     )
 
 
-def summarise(ext: Extraction, llm: LLMClient) -> str:
+def summarise(ext: Extraction, llm: LLMClient, source: str = "meeting") -> str:
     if not (ext.requirements or ext.decisions or ext.actions or ext.questions):
         return ""
     items = ext.model_dump(include={"objectives", "requirements", "decisions", "actions", "questions", "risks"})
-    return llm.generate_json(_prompt("summary"), str(items), Summary).summary
+    prompt = _prompt("summary_document" if source == "document" else "summary")
+    return llm.generate_json(prompt, str(items), Summary).summary
 
 
 def generate_register(segments: list[Segment], llm: LLMClient, project_code: str, project_name: str,
-                      meeting_title: str, meeting_date: str, progress: Progress | None = None) -> Register:
-    ext = extract(segments, llm, config.load_glossary(), progress=progress)
+                      meeting_title: str, meeting_date: str, progress: Progress | None = None,
+                      source: str = "meeting") -> Register:
+    ext = extract(segments, llm, config.load_glossary(), progress=progress, source=source)
     if progress:
         progress("Writing the summary", 0.9)
-    summary = summarise(ext, llm)
-    register = build_register(ext, segments, project_code, project_name, meeting_title, meeting_date, summary)
+    summary = summarise(ext, llm, source)
+    register = build_register(ext, segments, project_code, project_name, meeting_title, meeting_date, summary, source)
     if progress:
         progress("Done", 1.0)
     return register

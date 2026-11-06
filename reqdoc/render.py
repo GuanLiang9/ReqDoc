@@ -157,16 +157,24 @@ def notes_sections(reg: Register, summaries: dict[str, str] | None = None) -> li
         for q in reg.questions])
 
     meeting_blocks: list[Block] = []
+    document_blocks: list[Block] = []
     for m in sorted(reg.meetings, key=lambda x: x.date):
+        text = summaries.get(m.id) or (reg.summary if m is reg.meetings[-1] else "")
+        if m.kind == "document":
+            document_blocks.append(("sub", f"{pretty(m.date)} · {m.title}"))
+            if m.source_file:
+                document_blocks.append(("text", "Files: " + m.source_file))
+            document_blocks.append(("text", text) if text else ("empty",))
+            continue
         meeting_blocks.append(("sub", f"{pretty(m.date)} · {m.title}"))
         if m.attendees:
             meeting_blocks.append(("text", "Attendees: " + ", ".join(m.attendees)))
-        text = summaries.get(m.id) or (reg.summary if m is reg.meetings[-1] else "")
         meeting_blocks.append(("text", text) if text else ("empty",))
     return [
         ("Action tracker", action_blocks),
         ("Open questions", [questions]),
         ("Meetings", meeting_blocks or [("empty",)]),
+        ("Documents received", document_blocks or [("empty",)]),
         ("Current process (as-is)", [_numbered(reg.asis_steps)]),
     ]
 
@@ -180,7 +188,8 @@ def doc_title(reg: Register) -> str:
 
 
 def appendix_lines(reg: Register) -> tuple[list[str], list[str]]:
-    meetings = [f"{m.date} — {m.title}" + (f" ({m.source_file})" if m.source_file else "") for m in reg.meetings]
+    meetings = [f"{m.date} — {'Documents' if m.kind == 'document' else 'Meeting'}: {m.title}"
+                + (f" ({m.source_file})" if m.source_file else "") for m in reg.meetings]
     return meetings, reg.change_log
 
 
@@ -217,7 +226,7 @@ def render_markdown(reg: Register) -> str:
         for b in blocks:
             out += [_md_block(b), ""]
     meetings, log = appendix_lines(reg)
-    out += ["## Appendix", "", "**Source meetings**", ""]
+    out += ["## Appendix", "", "**Sources**", ""]
     out += [f"- {m}" for m in meetings] or ["—"]
     if log:
         out += ["", "**Change log**", ""] + [f"- {line}" for line in log]
@@ -721,7 +730,7 @@ def _build_docx(reg: Register, kind: str, summaries: dict[str, str] | None, ask_
     if appendix:
         meetings, log = appendix_lines(reg)
         doc.add_heading("Appendix", level=1)
-        doc.add_heading("Source meetings", level=2)
+        doc.add_heading("Sources", level=2)
         for m in meetings or ["—"]:
             doc.add_paragraph(_clean(m), style="List Bullet")
         if log:

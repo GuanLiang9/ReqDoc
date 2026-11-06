@@ -116,6 +116,8 @@ def _migrate(reg: Register) -> Register:
             a.raised_date = a.raised_date or dates.get(a.source_meeting, fallback)
             a.due_date = a.due_date or resolve_due(a.due, a.raised_date)
         reg.schema_version = 2
+    if reg.schema_version < 3:  # v3: a source can be a pack of documents (MeetingInfo.kind, default "meeting")
+        reg.schema_version = 3
     return reg
 
 

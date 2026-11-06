@@ -164,11 +164,12 @@ class MeetingInfo(BaseModel):
     title: str
     date: str
     attendees: list[str] = []
-    source_file: str = ""  # original upload name
+    source_file: str = ""  # original upload name(s); a document pack lists every file
+    kind: Literal["meeting", "document"] = "meeting"  # a meeting, or a pack of supporting documents
 
 
 class Register(BaseModel):
-    schema_version: int = 2
+    schema_version: int = 3
     project_code: str
     project_name: str = ""
     version: str = "0.1"

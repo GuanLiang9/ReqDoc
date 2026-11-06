@@ -40,6 +40,7 @@ The full vision (Teams auto-pickup, SharePoint filing, AWS Bedrock) is in `Propo
 |---|---|
 | Upload a **recording** (MP3, M4A, WAV, MP4, WEBM…) and transcribe it locally | Pick up Teams recordings automatically |
 | Upload a Teams transcript (`.vtt`, `.docx`) or plain text (`.txt`) | Tell speakers apart in a recording (see [limitations](#15-safeguards-and-limitations)) |
+| Upload **supporting documents** (Word, PowerPoint, PDF, Excel) and add what they say to the requirements | Read pictures, charts or scanned PDFs (no OCR yet) |
 | Write a lean requirement specification, plus a separate meeting notes and action tracker | Save to SharePoint or send Teams approval cards |
 | **Edit everything in the browser**: text, owner, priority, status | Use cloud AI (Bedrock / Claude). That's Phase 2 |
 | **Export to Word (.docx)** for any approved version or the current draft | Handle several people editing one project at the same time |
@@ -138,7 +139,23 @@ Upload the next recording to the **same project**. Instead of a new document you
 
 Only **one draft per project** can be open at a time. Approve or discard it before uploading the next meeting.
 
-### 6.3 Getting a transcript from Teams (optional)
+### 6.3 Supporting documents (Word, PowerPoint, PDF, Excel)
+
+People often receive documents about the project as well: an RFP, a scope document, the kickoff slides, a PDF from the client, a field list in Excel. Add them the same way as a meeting:
+
+1. Click **Upload**, then choose **Documents** at the top of the sheet.
+2. Drop in up to **10 files** (`.docx`, `.pptx`, `.pdf`, `.xlsx`, `.txt`, `.md`, 25 MB each). They are read **together as one pack**, so you review one list of changes.
+3. Give the pack a title (for example "Vendor RFP pack") and the date you received it, then **Start**.
+
+- **First upload on a project:** the documents create the first draft. **Later uploads:** they are compared with the approved document and every change goes to **Changes to review**, exactly like a follow-up meeting.
+- **Evidence points into the document:** instead of a time, each item shows where it came from, for example `[RFP · p.3]`, `[Kickoff deck · slide 4]`, `[Scope · Security]` (the nearest Word heading) or `[Field list · Fields row 12]`. Click it to see the text around it.
+- **What is read:** paragraphs and tables in Word, every text box, table and the **speaker notes** in PowerPoint, the text of each PDF page, and every row of each Excel sheet (with its column names, up to 3,000 rows per file).
+- **What is not read:** pictures, charts and diagrams, and **scanned PDFs** (they have no text layer; you get a clear message). Old `.doc`, `.ppt` and `.xls` files: save them as `.docx`, `.pptx` or `.xlsx` first.
+- **Time:** about 30 seconds per page of text on a CPU-only laptop, so a 20-page pack takes about 10 minutes.
+- Only the text is kept (in the project folder, for the evidence view). The uploaded files are deleted after reading, like recordings.
+- In the **Meeting notes & action tracker** Word file, packs are listed under **Documents received**. The specification's appendix lists every source.
+
+### 6.4 Getting a transcript from Teams (optional)
 
 A Teams transcript gives better results than a recording, because it knows who said what.
 
@@ -146,7 +163,7 @@ A Teams transcript gives better results than a recording, because it knows who s
 2. After the meeting, open the meeting chat → **Recap** → **Transcript**.
 3. **Download** as **.vtt** or **.docx** and upload it instead of a recording.
 
-### 6.4 Where files are saved
+### 6.5 Where files are saved
 
 By default under `data/projects/<code> <name>/`. To share with the team, point `REQDOC_DATA_DIR` at a synced OneDrive/SharePoint folder (see [Configuration](#10-configuration)). Keep the path short: Windows stops working at 260 characters, and the app will tell you if you hit it.
 
@@ -234,6 +251,7 @@ reqdoc/                        # Python backend
   jobs.py                      # Background worker: transcribe → extract → compare
   transcribe.py                # Recording → text (faster-whisper)
   parsers.py                   # .vtt / .docx / .txt → [{timestamp, speaker, text}]
+  documents.py                 # supporting documents (.docx/.pptx/.pdf/.xlsx) → text lines with locations (p.3, slide 4)
   pipeline.py                  # chunk → extract (5 passes) → merge → evidence check → register
   changes.py                   # Follow-up comparison and applying accepted changes
   storage.py                   # Projects, drafts, versions on disk
@@ -314,14 +332,15 @@ The repo includes [Claude Code](https://docs.claude.com/en/docs/claude-code) ski
 - Items without transcript evidence are flagged **⚠ to confirm**, not silently included.
 - Nothing is ever deleted: withdrawn and changed items stay in the document and the change log.
 - Every version is kept under `02_master/versions/`.
-- Recordings are deleted right after they are transcribed.
+- Recordings and uploaded documents are deleted right after they are read. Only the text is kept.
 
 **Limitations**
 - **No speaker labels for recordings.** Whisper turns speech into text but doesn't know who spoke. The AI can only name people who are addressed or introduce themselves.
 - Local models are smaller than cloud models. Expect more review edits than Phase 2 will need. Measuring that gap is part of what Phase 1 is for.
 - Processing is slow on CPU-only laptops (see the [model table](#which-ai-model-for-your-laptop)).
 - Accents, Singlish, site noise and crosstalk reduce transcript accuracy, which carries into the document.
-- Meetings are processed one at a time.
+- Meetings and document packs are processed one at a time.
+- Supporting documents: only text is read (no pictures, charts or scanned PDFs). Long documents full of boilerplate can produce extra items for the reviewer to remove.
 
 **Consent (PDPA):** only process meetings where attendees were told the meeting is recorded and transcribed for requirement documentation. Don't upload HR, 1-to-1 or unrelated meetings. Everything stays on your machine or your chosen synced folder.
 

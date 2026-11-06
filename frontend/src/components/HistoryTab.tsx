@@ -36,17 +36,23 @@ export default function HistoryTab({ detail, changeLog }: { detail: ProjectDetai
           ]}
         />
       </Section>
-      <Section title="Meetings" count={detail.meetings.length}>
+      <Section title="Sources" count={detail.meetings.length}>
         <Table
           size="small"
           pagination={false}
           rowKey="id"
           dataSource={[...detail.meetings].reverse()}
-          locale={{ emptyText: <span className="text-muted">No meetings yet</span> }}
+          locale={{ emptyText: <span className="text-muted">Nothing uploaded yet</span> }}
           columns={[
-            { title: 'Date', dataIndex: 'date', width: 130, render: (v: string) => <span className="tnum">{v}</span> },
-            { title: 'Meeting', dataIndex: 'title' },
-            { title: 'File', dataIndex: 'source_file', responsive: ['md'], render: (v: string) => <span className="text-muted">{v || '—'}</span> },
+            { title: 'Date', dataIndex: 'date', width: 120, render: (v: string) => <span className="tnum">{v}</span> },
+            {
+              title: 'Type',
+              dataIndex: 'kind',
+              width: 120,
+              render: (v: string) => (v === 'document' ? <Chip tone="info">Documents</Chip> : <Chip tone="muted">Meeting</Chip>),
+            },
+            { title: 'Title', dataIndex: 'title' },
+            { title: 'Files', dataIndex: 'source_file', responsive: ['md'], render: (v: string) => <span className="text-muted">{v || '—'}</span> },
           ]}
         />
       </Section>

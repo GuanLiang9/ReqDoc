@@ -36,7 +36,9 @@ export default function MeetingNotesTab({ reg, readOnly, onChange, onEvidence }:
         specification.
       </p>
 
-      <Section title={latest ? `Summary of the latest meeting · ${names[latest.id]}` : 'Meeting summary'}>
+      <Section
+        title={latest ? `Summary of the latest ${latest.kind === 'document' ? 'documents' : 'meeting'} · ${names[latest.id]}` : 'Meeting summary'}
+      >
         {readOnly ? (
           <p className="m-0 whitespace-pre-wrap text-[19px] leading-[1.45]">
             {reg.summary || <span className="text-muted">No summary yet</span>}

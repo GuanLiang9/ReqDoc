@@ -188,7 +188,11 @@ export default function ChangesTab({ changes, busy, onDecide, onAcceptSafe, onEv
               <div className="mt-3 text-[13px] text-muted">
                 {c.quote && <span className="text-[15px] text-ink2">“{c.quote}” </span>}
                 <Button type="link" size="small" className="px-1" onClick={() => onEvidence(c)}>
-                  {c.timestamp ? `[${c.timestamp}] see transcript` : 'see transcript'}
+                  {/^\d{1,2}:\d{2}:\d{2}$/.test(c.timestamp)
+                    ? `[${c.timestamp}] see transcript`
+                    : c.timestamp
+                      ? `[${c.timestamp}] see document`
+                      : 'see source'}
                 </Button>
               </div>
             )}

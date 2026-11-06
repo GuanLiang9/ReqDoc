@@ -210,7 +210,7 @@ export default function ProjectPage() {
       : [];
 
   const uploadBlockedReason = detail.has_draft
-    ? 'Approve or discard the open draft before adding another meeting'
+    ? 'Approve or discard the open draft before uploading more'
     : active
       ? 'A meeting is still being processed'
       : '';
@@ -266,7 +266,7 @@ export default function ProjectPage() {
         />
       ),
     },
-    { key: 'history', label: 'Versions and meetings', children: <HistoryTab detail={detail} changeLog={draft?.change_log ?? []} /> },
+    { key: 'history', label: 'Versions and sources', children: <HistoryTab detail={detail} changeLog={draft?.change_log ?? []} /> },
   ];
 
   const exportButton = exportItems.length > 0 && (
@@ -287,8 +287,8 @@ export default function ProjectPage() {
   );
   const uploadButton = (
     <Tooltip title={uploadBlockedReason}>
-      <Button type="primary" icon={<UploadOutlined />} aria-label="Upload meeting" disabled={!!uploadBlockedReason} onClick={() => setUploadOpen(true)}>
-        <span className="hidden sm:inline">Upload meeting</span>
+      <Button type="primary" icon={<UploadOutlined />} aria-label="Upload a meeting or documents" disabled={!!uploadBlockedReason} onClick={() => setUploadOpen(true)}>
+        <span className="hidden sm:inline">Upload</span>
       </Button>
     </Tooltip>
   );
@@ -348,14 +348,14 @@ export default function ProjectPage() {
 
         {!reg && !active ? (
           <div className="tile px-6 py-20 text-center sm:px-12">
-            <h2 className="headline text-[32px]">{job?.stage === 'error' ? 'The last upload did not work.' : 'No meeting yet.'}</h2>
+            <h2 className="headline text-[32px]">{job?.stage === 'error' ? 'The last upload did not work.' : 'Nothing uploaded yet.'}</h2>
             <p className="subhead mx-auto mb-8 mt-3 max-w-lg">
               {job?.stage === 'error'
                 ? 'Read the message above, fix the problem and try again.'
-                : 'Upload a recording or a Teams transcript and the requirement document is written for you to review.'}
+                : 'Upload a meeting (a recording or a Teams transcript) or the documents you received, and the requirement document is written for you to review.'}
             </p>
             <Button type="primary" size="large" icon={<UploadOutlined />} onClick={() => setUploadOpen(true)}>
-              Upload the first meeting
+              Upload a meeting or documents
             </Button>
           </div>
         ) : (

@@ -64,7 +64,10 @@ export interface MeetingInfo {
   title: string;
   date: string;
   attendees: string[];
+  /** the uploaded file name(s); a document pack lists every file */
   source_file: string;
+  /** a meeting (recording or transcript) or a pack of supporting documents */
+  kind: 'meeting' | 'document';
 }
 
 export type StringListKey =
@@ -125,6 +128,7 @@ export interface ProjectDetail {
   meetings: MeetingInfo[];
   job: Job | null;
   accepted_files: string[];
+  accepted_documents: string[];
 }
 
 export type ChangeType =
