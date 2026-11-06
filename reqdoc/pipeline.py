@@ -9,8 +9,8 @@ from .dates import resolve_due
 from .diagram import mermaid_from_steps
 from .llm import LLMClient
 from .models import (
-    Action, ActionsPass, Decision, DecisionsPass, Extraction, IssuesPass, MeetingInfo, ProcessPass, Question,
-    Register, Requirement, RequirementsPass, Risk, Rule, Segment, Summary,
+    Action, ActionsPass, Decision, DecisionsPass, ExtractedRequirement, Extraction, IssuesPass, MeetingInfo, ProcessPass,
+    Question, Register, Requirement, RequirementsPass, Risk, Rule, Segment, Summary,
 )
 
 Progress = Callable[[str, float], None]  # (message, 0..1)
@@ -87,7 +87,8 @@ def extract(segments: list[Segment], llm: LLMClient, glossary: str = "",
                 progress(f"Part {i} of {len(chunks)}: finding {label}", done / (total_calls + 1))
             system = common + "\n\n" + _prompt(f"extract_{name}")
             results.append(Extraction(**llm.generate_json(system, user, schema).model_dump()))
-    return merge(results)
+    merged = merge(results)
+    return tidy_document(merged) if source == "document" else merged
 
 
 def _norm(text: str) -> str:
@@ -117,6 +118,81 @@ def merge(results: list[Extraction]) -> Extraction:
         combined = [item for r in results for item in getattr(r, field)]
         setattr(merged, field, _dedupe(combined))
     return merged
+
+
+# --- documents: requests, duplicates and who asked ------------------------------------
+
+_ASKED = r"(?:has |have |had |is |are )?(?:asked|requested|requesting|requires?|wants?|wanted|would like|expects?|asking)"
+_REQUEST = re.compile(rf"\b{_ASKED}\b", re.I)
+_DECIDED = re.compile(r"\b(decided|agreed|approved|confirmed|chosen|resolved|endorsed|signed off|ratified)\b", re.I)
+_WHO = re.compile(rf"\b([A-Z][\w'-]+(?:\s+[A-Z][\w'-]+)?)\s+{_ASKED}\b")
+_NOT_NAMES = {"he", "she", "they", "we", "it", "this", "that", "the", "a", "an", "all", "there", "i", "you", "users", "management"}
+_NON_FUNCTIONAL = re.compile(
+    r"user[- ]friendly|easy to (?:use|navigate|learn)|usab|accessib|performance|response time|fast|secur|encrypt|available|"
+    r"uptime|reliab|scalab|backup|retention|within \d+ ?(?:s|sec|seconds|min|minutes|hours)|\d+(?:\.\d+)?%", re.I)
+SAME_STATEMENT = 0.8
+
+
+def requester_in(text: str) -> str:
+    """'Quyet has asked for ...' -> 'Quyet'. '' when no person is named as the one asking."""
+    for m in _WHO.finditer(text or ""):
+        name = m.group(1).strip()
+        if name.split()[0].lower() not in _NOT_NAMES:
+            return name
+    return ""
+
+
+def _is_request(item) -> bool:
+    evidence = f"{getattr(item, 'quote', '')} {item.text}"
+    return bool(_REQUEST.search(evidence)) and not _DECIDED.search(evidence)
+
+
+def _same(a: str, b: str) -> bool:
+    na, nb = _norm(a), _norm(b)
+    return bool(na and nb) and SequenceMatcher(None, na, nb).ratio() >= SAME_STATEMENT
+
+
+def _overlap(a: str, b: str) -> float:
+    """Share of words two sentences have in common (0 to 1)."""
+    wa, wb = {w for w in _norm(a).split() if len(w) > 2}, {w for w in _norm(b).split() if len(w) > 2}
+    return len(wa & wb) / len(wa | wb) if wa and wb else 0.0
+
+
+def tidy_document(ext: Extraction) -> Extraction:
+    """A document is written for the team that reads it, so small models file things differently from a meeting:
+    - "X has asked for Y" is a request (a requirement), not a decision. Real decisions say agreed, approved ...
+    - the same statement must not appear three times (as a decision, an assumption and a requirement)
+    - the person who asked is not the person who does the work (an action's owner)
+    Actions are never dropped: a request the team has to work on is exactly what the reader needs to see."""
+    kept_decisions = []
+    for d in ext.decisions:
+        if _is_request(d):
+            who = d.decided_by or requester_in(f"{d.quote} {d.text}")
+            kind = "NFR" if _NON_FUNCTIONAL.search(d.text) else "FR"
+            ext.requirements.append(ExtractedRequirement(text=d.text, timestamp=d.timestamp, quote=d.quote, kind=kind,
+                                                         requested_by=who))
+        else:
+            kept_decisions.append(d)
+    ext.decisions = kept_decisions
+    ext.requirements = _dedupe(ext.requirements)
+    for r in ext.requirements:
+        if not r.requested_by:
+            r.requested_by = requester_in(f"{r.quote} {r.text}")
+    # the same sentence again as a decision, rule, assumption or scope line adds nothing
+    ext.decisions = [d for d in ext.decisions if not any(_same(d.text, r.text) for r in ext.requirements)]
+    firm = [r.text for r in ext.requirements] + [d.text for d in ext.decisions] + [b.text for b in ext.business_rules]
+    for field in ("assumptions", "scope_in", "scope_out", "scope_deferred"):
+        setattr(ext, field, [t for t in getattr(ext, field) if not any(_same(t, f) for f in firm)])
+    for a in ext.actions:
+        asked_by = requester_in(f"{a.quote} {a.task}")
+        if asked_by and a.owner and _norm(a.owner) == _norm(asked_by):
+            a.owner = ""  # Quyet asked for it; the owner is whoever does the work
+        if asked_by and not any(_overlap(a.task, r.text) >= 0.5 for r in ext.requirements):
+            # a request the team must act on is also something the finished system must meet: keep both
+            kind = "NFR" if _NON_FUNCTIONAL.search(a.task) else "FR"
+            ext.requirements.append(ExtractedRequirement(text=a.task, timestamp=a.timestamp, quote=a.quote, kind=kind,
+                                                         requested_by=asked_by))
+    return ext
 
 
 # --- evidence check ------------------------------------------------------------
@@ -183,9 +259,11 @@ def build_register(ext: Extraction, segments: list[Segment], project_code: str, 
         return records
 
     actions = track([Action(**a.model_dump()) for a in ext.actions], "ACT")
-    for a in actions:  # when it was given, and the due date as a real date
+    for a in actions:  # when it was given, the due date as a real date, and who asked for it
         a.raised_date = meeting_date
         a.due_date = resolve_due(a.due, meeting_date)
+        if kind == "document":
+            a.requested_by = requester_in(f"{a.quote} {a.task}")
 
     reqs = [Requirement(**r.model_dump()) for r in ext.requirements]
     fr = track([r for r in reqs if r.kind == "FR"], "FR")

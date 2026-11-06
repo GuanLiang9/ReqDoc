@@ -59,7 +59,7 @@ export default function MeetingNotesTab({ reg, readOnly, onChange, onEvidence }:
           rows={reg.actions}
           readOnly={readOnly}
           addLabel="Add action"
-          minWidth={1080}
+          minWidth={1200}
           statuses={['Open', 'Done', 'Withdrawn']}
           blank={() => ({
             ...base('Open'),
@@ -71,10 +71,12 @@ export default function MeetingNotesTab({ reg, readOnly, onChange, onEvidence }:
             closed_meeting: '',
             closed_date: '',
             updates: [],
+            requested_by: '',
           })}
           cols={[
             { key: 'task', title: 'Task', area: true, width: 250 },
             { key: 'owner', title: 'Owner', width: 110 },
+            { key: 'requested_by', title: 'Requested by', width: 110 },
             {
               key: 'raised_date',
               title: 'Raised',

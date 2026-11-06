@@ -51,6 +51,8 @@ export interface Action extends Tracked {
   closed_meeting: string;
   closed_date: string;
   updates: string[];
+  /** who asked for the work (not necessarily who does it) */
+  requested_by: string;
 }
 export interface Risk extends Tracked {
   text: string;
@@ -150,6 +152,14 @@ export interface Change {
   timestamp: string;
   quote: string;
   decision: 'pending' | 'accepted' | 'rejected';
+}
+
+/** Every change proposed for one approved version, and what the reviewer decided. */
+export interface ReviewRecord {
+  source: MeetingInfo | null;
+  changes: Array<Change & { item?: Record<string, unknown> }>;
+  /** false for versions approved before this record existed */
+  recorded?: boolean;
 }
 
 export interface Health {

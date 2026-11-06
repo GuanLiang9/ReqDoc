@@ -1,6 +1,6 @@
-import { Button, Input, Table } from 'antd';
+import { App, Button, Input, Table } from 'antd';
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons';
-import type { Decision, Register, Requirement, Risk, Rule, StringListKey, Tracked } from '../types';
+import type { Action, Decision, Register, Requirement, Risk, Rule, StringListKey, Tracked } from '../types';
 import ItemTable from './ItemTable';
 import Section from './Section';
 import StringList from './StringList';
@@ -22,7 +22,41 @@ interface Props {
 }
 
 export default function RequirementsTab({ reg, readOnly, onChange, onEvidence }: Props) {
+  const { message } = App.useApp();
   const set = <K extends keyof Register>(key: K, value: Register[K]) => onChange({ ...reg, [key]: value });
+
+  /** One click: a requirement or decision becomes a task in the action tracker (owner and due date are filled in there). */
+  const addAsAction = (item: Requirement | Decision, prefix: string) => {
+    const task = `${prefix}${item.text}`;
+    if (reg.actions.some((a) => a.task.trim().toLowerCase() === task.trim().toLowerCase())) {
+      message.info(`${item.id} is already in the action tracker.`);
+      return;
+    }
+    const asker = 'requested_by' in item ? item.requested_by : item.decided_by;
+    const action: Action = {
+      ...base('Open'),
+      source_meeting: item.source_meeting,
+      timestamp: item.timestamp,
+      quote: item.quote,
+      task,
+      owner: '',
+      requested_by: asker ?? '',
+      due: '',
+      due_date: '',
+      raised_date: '',
+      closed_meeting: '',
+      closed_date: '',
+      updates: [],
+    };
+    set('actions', [...reg.actions, action]);
+    message.success(`Added to the action tracker. Open "Meeting notes and actions" to set the owner and due date, then save.`);
+  };
+
+  const actionButton = (item: Requirement | Decision, prefix: string) => (
+    <Button type="text" size="small" className="!text-blue" aria-label={`Add ${item.id} as an action`} onClick={() => addAsAction(item, prefix)}>
+      + Action
+    </Button>
+  );
   const list = (key: StringListKey, placeholder: string) => (
     <StringList items={reg[key]} readOnly={readOnly} placeholder={placeholder} onChange={(v) => set(key, v)} />
   );
@@ -64,6 +98,7 @@ export default function RequirementsTab({ reg, readOnly, onChange, onEvidence }:
             { key: 'priority', title: 'Priority', width: 120, options: ['Must', 'Should', 'Could', 'Not stated'] },
             { key: 'requested_by', title: 'Requested by', width: 140 },
           ]}
+          rowAction={(r) => actionButton(r, 'Deliver: ')}
           onChange={(v) => set('requirements', v)}
           onEvidence={(r) => onEvidence(r, `${r.id}: ${r.text}`)}
         />
@@ -102,6 +137,7 @@ export default function RequirementsTab({ reg, readOnly, onChange, onEvidence }:
             { key: 'text', title: 'Decision', area: true },
             { key: 'decided_by', title: 'Decided by', width: 140 },
           ]}
+          rowAction={(r) => actionButton(r, 'Follow up: ')}
           onChange={(v) => set('decisions', v)}
           onEvidence={(r) => onEvidence(r, `${r.id}: ${r.text}`)}
         />

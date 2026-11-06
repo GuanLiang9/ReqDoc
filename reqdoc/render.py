@@ -146,7 +146,8 @@ def notes_sections(reg: Register, summaries: dict[str, str] | None = None) -> li
 
     actions = sorted(reg.actions, key=_action_sort_key)
     tracker = _table(["ID", "Action", "Owner", "Raised", "Due", "Status", "Closed"], [
-        [a.id, a.task + _flag(a), a.owner, names.get(a.source_meeting, pretty(a.raised_date)).replace(" · ", "\n"),
+        [a.id, a.task + _flag(a) + (f"\nRequested by {a.requested_by}" if a.requested_by else ""), a.owner,
+         names.get(a.source_meeting, pretty(a.raised_date)).replace(" · ", "\n"),
          due_cell(a), "Overdue" if is_overdue(a, today) else a.status, closed_cell(a)]
         for a in actions])
     updates = [f"{a.id}: {u}" for a in actions for u in a.updates]

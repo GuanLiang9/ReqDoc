@@ -116,8 +116,8 @@ def _migrate(reg: Register) -> Register:
             a.raised_date = a.raised_date or dates.get(a.source_meeting, fallback)
             a.due_date = a.due_date or resolve_due(a.due, a.raised_date)
         reg.schema_version = 2
-    if reg.schema_version < 3:  # v3: a source can be a pack of documents (MeetingInfo.kind, default "meeting")
-        reg.schema_version = 3
+    if reg.schema_version < 4:  # v3: a source can be a pack of documents; v4: actions record who asked (new fields default to "")
+        reg.schema_version = 4
     return reg
 
 
@@ -259,11 +259,23 @@ def approve(code: str, reviewer: str, major: bool = False) -> Register:
         vdir = folder / "versions" / f"v{draft.version}"
         payload = draft.model_dump_json(indent=2)
         _write(vdir / "register.json", payload)
+        _write(vdir / "review.json", json.dumps({
+            "source": draft.meetings[-1].model_dump() if draft.meetings else None,
+            "changes": [c.model_dump() for c in load_changes(code)],
+        }, indent=2))
         _write(vdir / "master.docx", render_docx(draft))
         _write(vdir / "meeting_notes.docx", render_docx(draft, "notes", meeting_summaries(code)))
         _write(folder / "register.json", payload)
         discard_draft(code)
         return draft
+
+
+def load_review(code: str, version: str) -> dict | None:
+    """Every change that was proposed for this version and what the reviewer decided. None for versions saved before this record existed."""
+    if not re.fullmatch(r"\d+\.\d+", version):
+        raise StorageError("Invalid version")
+    path = project_dir(code) / "02_master" / "versions" / f"v{version}" / "review.json"
+    return json.loads(path.read_text(encoding="utf-8")) if path.exists() else None
 
 
 def get_register(code: str, version: str = "latest") -> Register:

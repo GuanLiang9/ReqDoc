@@ -3,6 +3,7 @@ import { DownloadOutlined } from '@ant-design/icons';
 import { api } from '../api';
 import type { ProjectDetail } from '../types';
 import Chip from './Chip';
+import ReviewLog from './ReviewLog';
 import Section from './Section';
 
 export default function HistoryTab({ detail, changeLog }: { detail: ProjectDetail; changeLog: string[] }) {
@@ -15,6 +16,10 @@ export default function HistoryTab({ detail, changeLog }: { detail: ProjectDetai
           pagination={false}
           rowKey={(v) => v}
           dataSource={[...detail.versions].reverse()}
+          expandable={{
+            expandedRowRender: (v) => <ReviewLog code={code} version={v} />,
+            expandRowByClick: false,
+          }}
           locale={{ emptyText: <span className="text-muted">Nothing approved yet. Review the draft, then approve it to create v1.0.</span> }}
           columns={[
             { title: 'Version', render: (_, v) => <b className="tracking-wide">v{v}</b> },

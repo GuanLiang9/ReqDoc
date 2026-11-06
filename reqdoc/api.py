@@ -295,6 +295,12 @@ def get_transcript(code: str, meeting_id: str):
     return [{"timestamp": s.timestamp, "speaker": s.speaker, "text": s.text} for s in parse(text.splitlines())]
 
 
+@app.get("/api/projects/{code}/versions/{version}/review")
+def get_review(code: str, version: str):
+    review = storage.load_review(code, version)
+    return review or {"source": None, "changes": [], "recorded": False}
+
+
 @app.get("/api/projects/{code}/export.docx")
 def export_docx(code: str, version: str = "latest", doc: str = "spec"):
     data, name = storage.export_docx(code, version, doc)

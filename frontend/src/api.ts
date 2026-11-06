@@ -1,5 +1,6 @@
 import type {
   Change,
+  ReviewRecord,
   Health,
   Project,
   ProjectDetail,
@@ -66,6 +67,8 @@ export const api = {
     request<Change[]>(`/projects/${enc(code)}/changes/${enc(id)}`, json('POST', { decision })),
   acceptSafe: (code: string) =>
     request<Change[]>(`/projects/${enc(code)}/changes-accept-safe`, { method: 'POST' }),
+  review: (code: string, version: string) =>
+    request<ReviewRecord>(`/projects/${enc(code)}/versions/${enc(version)}/review`),
   transcript: (code: string, meetingId: string) =>
     request<TranscriptLine[]>(`/projects/${enc(code)}/transcripts/${enc(meetingId)}`),
   /** doc: 'spec' = requirement specification, 'notes' = meeting notes and action tracker */

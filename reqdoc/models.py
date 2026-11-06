@@ -149,6 +149,7 @@ class Action(ExtractedAction, Tracked):
     closed_meeting: str = ""  # meeting id in which it was marked done or withdrawn
     closed_date: str = ""
     updates: list[str] = []  # one line each time a later meeting moved the owner or due date
+    requested_by: str = ""  # the person who asked for the work (never the owner unless they also do it)
 
 
 class Risk(Quoted, Tracked):
@@ -169,7 +170,7 @@ class MeetingInfo(BaseModel):
 
 
 class Register(BaseModel):
-    schema_version: int = 3
+    schema_version: int = 4
     project_code: str
     project_name: str = ""
     version: str = "0.1"

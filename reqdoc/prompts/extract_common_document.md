@@ -15,6 +15,12 @@ A missed item is much worse than an extra item, because the reviewer can delete 
 - A table row written as "Column: value; Column: value" is one row of a table. When the table lists reports, screens, documents, notifications or integrations with their properties (for example "Report: Open permits; Frequency: Daily"), each row is a functional requirement: write it as a sentence ("The system must provide a daily Open permits report."). When it lists data fields, each row is a data field.
 - Skip text that is not about this project: tables of contents, page headers and footers, legal terms and conditions, generic company boilerplate.
 
+REQUESTS IN DOCUMENTS (these rules override anything below about decisions and actions)
+- A line saying a person has asked for, wants, needs or expects something (for example "Quyet has asked for RFAM to be implemented on WH IDD") is a REQUEST. Record it as a requirement. It is NOT a decision: record a decision only when the document says it was decided, agreed, approved or confirmed.
+- A document is written for the team that reads it, so every request that needs work is ALSO an action for that team, even though nobody is named. Write the task as a sentence starting with a verb ("Implement RFAM on the existing WH IDD website."). Record one action for each separate request.
+- The `owner` of an action is the person who will DO the work, and only when the document names that person (an Owner column, "Tom to send..."). The person who asked for it is never the owner. Use "" when nobody is named to do the work.
+- Do not record the same statement as a requirement, a decision and an assumption. Pick the one that fits.
+
 EVIDENCE RULES
 1. Only use what the documents say. Never invent items, names, owners, dates or numbers.
 2. Every item that has `timestamp` and `quote` needs both. `timestamp` is the location marker in square brackets at the start of the line, for example [RFP · p.3] or [Kickoff deck · slide 4]: copy it without the brackets. `quote` is 5 to 20 words copied exactly from that line.

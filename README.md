@@ -153,6 +153,10 @@ People often receive documents about the project as well: an RFP, a scope docume
 - **What is not read:** pictures, charts and diagrams, and **scanned PDFs** (they have no text layer; you get a clear message). Old `.doc`, `.ppt` and `.xls` files: save them as `.docx`, `.pptx` or `.xlsx` first.
 - **Time:** about 30 seconds per page of text on a CPU-only laptop, so a 20-page pack takes about 10 minutes.
 - Only the text is kept (in the project folder, for the evidence view). The uploaded files are deleted after reading, like recordings.
+- **Requests become requirements and actions.** A line like "Quyet has asked for RFAM to be implemented on WH IDD" is recorded as a **requirement** (not a decision) with **Requested by: Quyet**, and as an **action** for the team. The person who asked is never made the action's owner: the owner stays empty until you set it on the **Meeting notes and actions** tab (an owner is kept only if the document names who does the work, for example an Owner column).
+- **No triple entries:** the same statement is not repeated as a requirement, a decision and an assumption.
+- **Add as action:** while a draft is open, every requirement and decision has a **+ Action** button that copies it into the action tracker (with its evidence and who asked). Set the owner and due date there, then save.
+- **Nothing is silently lost:** open **Versions and sources**, expand a version, and you see every change that was proposed for it and whether you accepted or rejected it. Records are kept for versions approved from now on.
 - In the **Meeting notes & action tracker** Word file, packs are listed under **Documents received**. The specification's appendix lists every source.
 
 ### 6.4 Getting a transcript from Teams (optional)

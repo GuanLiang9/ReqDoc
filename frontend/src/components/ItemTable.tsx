@@ -32,6 +32,8 @@ interface Props<T extends Tracked> {
   onEvidence: (row: T) => void;
   /** extra note shown under the status of a row (for example "Overdue") */
   rowFlag?: (row: T) => ReactNode;
+  /** a small button shown in each saved row while editing (for example "Add as action") */
+  rowAction?: (row: T) => ReactNode;
   /** table width below which it scrolls sideways */
   minWidth?: number;
 }
@@ -47,6 +49,7 @@ export default function ItemTable<T extends Tracked>({
   onChange,
   onEvidence,
   rowFlag,
+  rowAction,
   minWidth = 900,
 }: Props<T>) {
   const patch = (index: number, change: Partial<T>) =>
@@ -154,6 +157,10 @@ export default function ItemTable<T extends Tracked>({
       ),
     },
   ];
+
+  if (!readOnly && rowAction) {
+    columns.push({ title: '', width: 118, render: (_, r) => (r.id ? rowAction(r) : null) });
+  }
 
   if (!readOnly) {
     columns.push({
