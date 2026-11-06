@@ -1,6 +1,6 @@
 # ReqDoc AI — Requirement Documents from Meeting Recordings
 
-> **Phase 1 prototype.** A local website where you upload a meeting **recording** (or a Teams transcript). The AI turns it into a structured requirement document you can edit in the browser and **export to Word**. Upload the next meeting for the same project and the document is **updated**, with every change shown to you for approval.
+> **Phase 1 prototype.** A local website where you upload a meeting **recording** (or a Teams transcript), and the **documents** you receive (Word, PowerPoint, PDF, Excel). The AI turns them into a structured requirement document you can edit in the browser and **export to Word**. Upload the next meeting for the same project and the document is **updated**, with every change shown to you for approval.
 
 Everything runs on your own laptop: the website, the speech-to-text (Whisper) and the AI model (Ollama). No cloud services, no API keys, and no meeting data leaves your machine.
 
@@ -117,7 +117,7 @@ Then use **http://localhost:8000**. Press `Ctrl+C` in the window to stop.
 ### 6.1 First meeting on a project
 
 1. **Projects** page → **New project** → enter a code and name, e.g. `PRJ-0421` / `Site Diary App`.
-2. Open the project → **Upload meeting** → drop the **recording** (or transcript) → give it a title and date → **Start**.
+2. Open the project → **Upload** → drop the **recording** (or transcript) → give it a title and date → **Start**. (Got documents instead, such as an RFP, slides or a PDF? Choose **Documents** at the top of the sheet: see [6.3](#63-supporting-documents-word-powerpoint-pdf-excel).)
 3. A progress bar shows the steps (transcribing → finding requirements). It takes a few minutes. You can leave the page open or come back later.
 4. When it finishes you get a **draft**. Review the **Requirements** tab:
    - Click any cell to fix the wording, owner, due date, priority or status.
@@ -181,7 +181,7 @@ Two **Word files (.docx)** are exported for every project, because they are for 
 | **Meeting notes & action tracker** `PRJ-0421_Site-Diary-App_v1.1_Meeting-Notes.docx` | The project team | Action tracker (which meeting gave each action, the date, owner, due date, status, and which meeting closed it), open questions, a summary of every meeting, and the as-is process |
 
 - Click **Export Word** at the top of the project for the specification. The arrow next to it lets you pick the notes file, and the **current draft** or the **latest approved version** of either.
-- Older versions: **Versions and meetings** tab → **Spec** or **Notes** next to the version.
+- Older versions: **Versions and sources** tab → **Spec** or **Notes** next to the version. Expand a version to see every change that was proposed for it and whether it was accepted or rejected.
 - Drafts end with `_DRAFT`.
 - Each document opens with a **cover page** (Woh Hup logo, project, version, status), then a **table of contents**, then the sections. Section headings also appear in Word's Navigation Pane (View → Navigation Pane).
 - **Table of contents:** the app fills it in for you, with page numbers, by opening the finished file in Microsoft Word in the background (a few seconds per export; Word windows you already have open are left alone). If Word is not installed, or you set `REQDOC_WORD_TOC=0`, the file asks "update the fields?" when you open it: click **Yes**.
@@ -352,8 +352,8 @@ The repo includes [Claude Code](https://docs.claude.com/en/docs/claude-code) ski
 
 | Phase | Scope |
 |---|---|
-| **1 — Local prototype (this)** | Recording or transcript → document → editable → Word, with reviewed updates. Ollama + Whisper + React. Measure quality on 5+ real meetings |
-| **2 — Company AI and storage** | Swap `OllamaClient` → `BedrockClient` (Claude Sonnet, ap-southeast-1). Save to SharePoint via Microsoft Graph. Speaker labels |
+| **1 — Local prototype (this)** | Recording, transcript or supporting documents (Word, PowerPoint, PDF, Excel) → document → editable → Word, with reviewed updates and an action tracker. Ollama + Whisper + React. Measure quality on 5+ real meetings |
+| **2 — Company AI and storage** | Swap `OllamaClient` → `BedrockClient` (Claude Sonnet, ap-southeast-1). Save to SharePoint via Microsoft Graph. Speaker labels. Read scanned PDFs and pictures (OCR, for example AWS Textract) |
 | **3 — Hands-free** | Teams transcript auto-pickup via Graph notifications, project code from meeting title, Teams approval cards (Power Automate) |
 
 ## 17. Troubleshooting
